@@ -1,0 +1,142 @@
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+:root {
+    --primary-color: #2563eb;    /* Royal Blue */
+    --secondary-color: #1e293b;  /* Dark Slate */
+    --success-color: #10b981;    /* Emerald Green */
+    --danger-color: #ef4444;     /* Rose Red */
+    --bg-light: #f8fafc;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-light);
+    color: var(--secondary-color);
+}
+
+/* Glassmorphism Card Style */
+.login-card {
+    max-width: 420px;
+    margin: 60px auto;
+    padding: 40px 30px;
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+h2 {
+    font-weight: 600;
+    font-size: 1.8rem;
+    margin-bottom: 30px;
+    color: var(--secondary-color);
+}
+
+.icon-circle {
+    font-size: 60px;
+    background: #eff6ff;
+    width: 100px;
+    height: 100px;
+    line-height: 100px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+}
+
+/* Status Container Styling */
+.status-container {
+    background: #f1f5f9;
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 25px;
+    border: 1px solid #e2e8f0;
+}
+
+#live-status {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Buttons Transformation */
+button {
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-start {
+    background: var(--success-color);
+    color: white;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 600;
+    width: 100%;
+}
+
+.btn-start:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+}
+
+.btn-stop {
+    background: var(--danger-color);
+    color: white;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 600;
+    width: 100%;
+}
+
+.btn-stop:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4);
+}
+
+/* Info Panel for Student View */
+.info-panel {
+    background: var(--secondary-color);
+    padding: 20px 30px;
+    color: white;
+    border-bottom: 4px solid var(--primary-color);
+}
+
+.status-badge {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 100px;
+}
+
+.logout-btn {
+    background: transparent;
+    border: 1.5px solid #94a3b8;
+    color: #94a3b8;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background: #94a3b8;
+    color: white;
+}
+
+/* Map Rounded Corners */
+#map {
+    margin: 15px;
+    border-radius: 20px;
+    height: 80vh;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}

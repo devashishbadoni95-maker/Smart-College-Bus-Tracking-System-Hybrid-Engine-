@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Bus Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        #map { height: 80vh; width: 100%; border-radius: 15px; }
+    </style>
+</head>
+<body>
+    <div class="info-panel" style="padding: 10px; background: #2c3e50; color: white; text-align: center;">
+        <strong>Live Bus Status: </strong> <span id="bus-status">Offline</span>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+    // Map setup (Default Dehradun as per your student.html)
+    var map = L.map('map').setView([30.3165, 78.0322], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Bus Icon setup
+    var busIcon = L.icon({
+        iconUrl: 'bus.png',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+    });
+
+    let busMarker = null;
+    const socket = io();
+
+    // Jab driver ki location aaye, tab icon move kare
+    socket.on("bus-moved", (data) => {
+        const { lat, lng } = data;
+        document.getElementById("bus-status").innerText = "🚌 Bus is Moving...";
+
+        if (!busMarker) {
+            // Pehli baar marker create karna
+            busMarker = L.marker([lat, lng], { icon: busIcon }).addTo(map);
+        } else {
+            // Marker ki position update karna (Movement dikhane ke liye)
+            busMarker.setLatLng([lat, lng]);
+        }
+        
+        // Map ko bus ke saath move karna
+        map.panTo([lat, lng]);
+    });
+    </script>
+</body>
+</html>

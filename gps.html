@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Driver GPS - Live Sending</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-card">
+        <div class="icon-circle">📍</div>
+        <h2>Driver GPS Tracker</h2>
+        <div id="status-box" style="padding: 10px; margin: 10px; border-radius: 8px; background: #f0f0f0;">
+            Status: <span id="status">Ready</span>
+        </div>
+        <button onclick="startSharing()" id="startBtn">Start Sharing Location</button>
+        <p id="coords"></p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+    // Login check: Sirf driver hi isse access kare
+    if (!localStorage.getItem("driverLogin")) {
+        location.href = "driverlogin.html";
+    }
+
+    const socket = io();
+    let watchId = null;
+
+    function startSharing() {
+        if (navigator.geolocation) {
+            document.getElementById("status").innerText = "📡 Sending Live Location...";
+            document.getElementById("startBtn").disabled = true;
+
+            // watchPosition real-time movement track karta hai
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const data = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        busId: "COLLEGE-BUS-01"
+                    };
+                    
+                    // Server ko data bhejna
+                    socket.emit("update-location", data);
+                    
+                    document.getElementById("coords").innerHTML = 
+                        "Lat: " + data.lat.toFixed(5) + " | Lng: " + data.lng.toFixed(5);
+                },
+                (error) => {
+                    alert("GPS Error: Please enable location!");
+                },
+                { enableHighAccuracy: true }
+            );
+        }
+    }
+    </script>
+</body>
+</html>

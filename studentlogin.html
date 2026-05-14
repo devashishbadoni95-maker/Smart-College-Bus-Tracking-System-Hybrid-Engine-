@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Login - College Bus</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 320px; text-align: center; }
+        .icon-circle { font-size: 50px; margin-bottom: 10px; }
+        .input-group input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        button:hover { background: #2980b9; }
+        .error-msg { color: #e74c3c; font-size: 14px; display: none; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="icon-circle">🎓</div>
+        <h2>Student Login</h2>
+        
+        <div class="input-group">
+            <input type="text" id="u" placeholder="Username (student01)" required>
+        </div>
+        <div class="input-group">
+            <input type="password" id="p" placeholder="Password (std@123)" required>
+        </div>
+
+        <button type="button" onclick="login()">Access Map</button>
+        <p id="error" class="error-msg">❌ Access Denied: Check details</p>
+    </div>
+
+    <script>
+    // --- Session Configuration ---
+    const SESSION_DURATION = 30 * 60 * 1000; // 30 Minutes
+
+    // Login check with Session Expiry
+    function validateExistingSession() {
+        const isLoggedIn = localStorage.getItem("studentLogin");
+        const loginTime = localStorage.getItem("loginTime");
+        const currentTime = new Date().getTime();
+
+        if (isLoggedIn && loginTime) {
+            if (currentTime - loginTime < SESSION_DURATION) {
+                location.href = "student.html";
+            } else {
+                // Session expire ho gaya toh saaf kar do
+                localStorage.clear();
+            }
+        }
+    }
+    
+    validateExistingSession();
+
+    async function login() {
+        const u = document.getElementById("u").value;
+        const p = document.getElementById("p").value;
+        const errorMsg = document.getElementById("error");
+
+        errorMsg.style.display = "none";
+
+        try {
+            const res = await fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: u, password: p, role: "student" })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                // ✅ Login data aur Current Time dono save karein
+                localStorage.setItem("studentLogin", "true");
+                localStorage.setItem("loginTime", new Date().getTime()); // Session Start Time
+                localStorage.setItem("studentUser", u); // ID track karne ke liye
+                
+                location.href = "student.html";
+            } else {
+                errorMsg.style.display = "block";
+                errorMsg.innerText = "❌ Invalid Username or Password";
+            }
+        } catch (err) {
+            console.error("Login Error:", err);
+            errorMsg.style.display = "block";
+            errorMsg.innerText = "❌ Server error. Try again!";
+        }
+    }
+
+    document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') { login(); }
+    });
+    </script>
+</body>
+</html>

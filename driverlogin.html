@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Login - College Bus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --error-color: #ef4444;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+
+        .login-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 380px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .icon-circle {
+            font-size: 3.5rem;
+            background: #f3f4f6;
+            width: 90px;
+            height: 90px;
+            line-height: 90px;
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            display: block;
+        }
+
+        h2 {
+            color: #1f2937;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 1.25rem;
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 1rem;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .error-msg {
+            color: var(--error-color);
+            background: #fee2e2;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            display: none; /* Hidden by default */
+            border: 1px solid #fecaca;
+        }
+
+        /* Loading animation for button */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="icon-circle">🚌</div>
+        <h2>Driver Portal</h2>
+        
+        <div class="input-group">
+            <input type="text" id="u" placeholder="Username" required autocomplete="off">
+        </div>
+        <div class="input-group">
+            <input type="password" id="p" placeholder="Password" required>
+        </div>
+
+        <button type="button" id="loginBtn" onclick="login()">Log In</button>
+        <p id="error" class="error-msg">❌ Invalid Driver Credentials</p>
+    </div>
+
+    <script>
+        // Enter key se login support
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+
+        async function login() {
+            const u = document.getElementById("u").value;
+            const p = document.getElementById("p").value;
+            const btn = document.getElementById("loginBtn");
+            const errorDiv = document.getElementById("error");
+
+            if(!u || !p) {
+                alert("Please fill all fields");
+                return;
+            }
+
+            // Button loading state
+            btn.innerText = "Connecting...";
+            btn.classList.add("loading");
+            errorDiv.style.display = "none";
+
+            try {
+                const res = await fetch("/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: u, password: p, role: "driver" })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem("driverLogin", "true");
+                    // Success feel ke liye thoda wait
+                    setTimeout(() => {
+                        location.href = "driver.html";
+                    }, 500);
+                } else {
+                    btn.innerText = "Log In";
+                    btn.classList.remove("loading");
+                    errorDiv.style.display = "block";
+                }
+            } catch (err) {
+                btn.innerText = "Log In";
+                btn.classList.remove("loading");
+                errorDiv.innerText = "⚠️ Server Error. Is Node.js running?";
+                errorDiv.style.display = "block";
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
