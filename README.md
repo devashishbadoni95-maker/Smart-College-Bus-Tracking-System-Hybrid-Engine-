@@ -1,0 +1,2 @@
+# Smart-College-Bus-Tracking-System-Hybrid-Engine-
+The College Bus Tracking System is a real-time, GPS-based web application developed to help students track the live location of college buses in an efficient and reliable manner. The primary objective of this system is to reduce student waiting time, improve safety, and provide accurate information about bus movement and arrival at different stops.
