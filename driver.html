@@ -52,7 +52,8 @@
 
     <script>
     // 1. Initial Config
-    const collegeLoc = [30.3400, 77.9500]; // Shivalik College Coordinates
+    // Shivalik College of Engineering, Selaqui, Dehradun (Correct Coordinates)
+    const collegeLoc = [30.3606, 77.8306]; 
     let map, driverMarker, routingControl, watchId = null;
     const socket = io();
 
@@ -65,9 +66,12 @@
         window.location.replace("driverlogin.html");
     }
 
-    // Initialize Map
-    map = L.map('map').setView([20.5937, 78.9629], 5);
+    // Initialize Map - Default view near Shivalik College
+    map = L.map('map').setView(collegeLoc, 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // College Marker (Target)
+    L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College (Target)").openPopup();
 
     socket.on('connect', () => {
         document.getElementById("live-status").innerText = "Connected & Ready ✅";
@@ -103,18 +107,21 @@
                         driverMarker.setLatLng(currentPos);
                     }
 
-                    // Update Route Line
+                    // Update Route Line to SHIVALIK COLLEGE
                     if (routingControl) map.removeControl(routingControl);
                     routingControl = L.Routing.control({
-                        waypoints: [L.latLng(latitude, longitude), L.latLng(collegeLoc[0], collegeLoc[1])],
-                        createMarker: function() { return null; }, // Hide extra waypoint markers
+                        waypoints: [
+                            L.latLng(latitude, longitude),
+                            L.latLng(collegeLoc[0], collegeLoc[1])
+                        ],
+                        createMarker: function() { return null; },
                         lineOptions: { styles: [{ color: '#2563eb', weight: 5 }] },
                         addWaypoints: false,
                         draggableWaypoints: false,
-                        show: false // Hide text instructions
+                        show: false
                     }).addTo(map);
 
-                    // Send to Server with dynamic Bus ID
+                    // Send to Server
                     socket.emit("bus-moved", { busId, lat: latitude, lng: longitude });
 
                 }, err => {
@@ -123,7 +130,6 @@
                 }, { enableHighAccuracy: true });
             }
         } else {
-            // End Trip
             if (watchId) navigator.geolocation.clearWatch(watchId);
             startBtn.style.display = "block";
             stopBtn.style.display = "none";
