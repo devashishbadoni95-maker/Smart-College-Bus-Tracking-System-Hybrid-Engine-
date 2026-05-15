@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shivalik Bus Tracker - Welcome</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --driver: #f59e0b;
+            --admin: #1e293b;
+            --bg: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: var(--admin);
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        p {
+            color: var(--secondary);
+            margin-bottom: 30px;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            gap: 10px;
+        }
+
+        .student-btn {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .driver-btn {
+            background-color: var(--driver);
+            color: white;
+        }
+
+        .admin-btn {
+            background-color: var(--admin);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            filter: brightness(1.1);
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">🚌</div>
+    <h1>Shivalik College</h1>
+    <p>Bus Tracking System Portal</p>
+
+    <div class="btn-group">
+        <a href="/studentlogin" class="btn student-btn">
+            <span>🎓</span> Student Portal
+        </a>
+
+        <a href="/driverlogin" class="btn driver-btn">
+            <span>👨‍✈️</span> Driver Portal
+        </a>
+
+        <a href="/adminlogin" class="btn admin-btn">
+            <span>🛠️</span> Admin Panel
+        </a>
+    </div>
+
+    <div class="footer">
+        © 2026 Shivalik College Management
+    </div>
+</div>
+
+</body>
+</html>
