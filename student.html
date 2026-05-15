@@ -3,96 +3,73 @@
 <head>
     <title>Student View - Shivalik College Tracking</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #f4f7f6; }
-        #map { height: 85vh; width: 100%; display: none; }
-        
-        .leaflet-marker-icon { transition: transform 0.8s linear !important; }
-
+        #map { height: 75vh; width: 100%; display: none; }
         .info-panel {
             padding: 15px;
-            background: #2c3e50;
+            background: #1e293b;
             color: white;
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
             align-items: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
-
-        #stop-selector {
-            padding: 8px;
+        select {
+            padding: 10px;
             border-radius: 8px;
             border: none;
-            outline: none;
-            background: #34495e;
+            background: #334155;
             color: white;
             font-weight: bold;
-            cursor: pointer;
+            width: 100%;
         }
-
-        #stop-selector:disabled {
-            background: #7f8c8d;
-            cursor: not-allowed;
-            opacity: 0.7;
+        .status-badge { background: #f59e0b; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; text-align: center; }
+        #eta-box { font-size: 14px; text-align: center; }
+        .logout-btn { background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        
+        /* Bus Selection Card */
+        .selection-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
         }
-
-        .status-badge {
-            background: #ffcc00;
-            color: black;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        #eta-box { font-size: 1rem; color: #ecf0f1; }
-        .logout-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .arrival-popup {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #e74c3c;
-            color: white;
-            padding: 20px 40px;
-            border-radius: 15px;
-            z-index: 9999;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            text-align: center;
-            animation: slideDown 0.5s ease;
-        }
-        @keyframes slideDown { from { top: -100px; } to { top: 20px; } }
+        .selection-card { background: white; padding: 30px; border-radius: 20px; text-align: center; width: 80%; max-width: 350px; }
     </style>
 </head>
 
 <body>
 
+<div id="selection-screen" class="selection-overlay">
+    <div class="selection-card">
+        <h2>🚌 Select Your Bus</h2>
+        <p style="color: #64748b;">Choose the bus you want to track</p>
+        <select id="initial-bus-select">
+            <option value="BUS-01">Bus No. 1 (Route A)</option>
+            <option value="BUS-02">Bus No. 2 (Route B)</option>
+        </select>
+        <button class="logout-btn" style="background:#2563eb; width:100%; margin-top:20px;" onclick="initTracking()">Start Tracking</button>
+    </div>
+</div>
+
 <div id="ui-container" style="display: none;">
     <div class="info-panel">
         <div>
             <select id="stop-selector" onchange="setCustomStop()">
-                <option value="">-- Set Your Alert Stop --</option>
-                <option value="30.295667,78.055861">Mahindra Showroom (Rispana)</option>
-                <option value="30.288361,78.023472">Kargi Chowk</option>
+                <option value="">-- Set Alert Stop --</option>
+                <option value="30.2956,78.0558">Mahindra Showroom</option>
+                <option value="30.2883,78.0234">Kargi Chowk</option>
                 <option value="30.3415,77.8820">Prem Nagar</option>
-                <option value="30.3320,77.8510">Selaqui Market</option>
             </select>
         </div>
         <div>
-            <span id="status" class="status-badge">Waiting for Driver...</span>
+            <div id="status" class="status-badge">Searching for Bus...</div>
         </div>
         <div id="eta-box">
-            🕒 ETA: <span id="eta" style="color:#ffcc00; font-weight:bold;">-- mins</span>
+            🕒 <span id="bus-name-display">BUS-01</span> ETA: <span id="eta" style="color:#fbbf24; font-weight:bold;">-- mins</span>
         </div>
         <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
@@ -100,131 +77,87 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-// --- 1. SESSION MANAGEMENT LOGIC ---
-const SESSION_DURATION = 30 * 60 * 1000; // 30 Minutes
+    const socket = io();
+    let map, busMarker, routingControl, userStopCoords;
+    let selectedBusId = "BUS-01";
+    const collegeLoc = [30.335691, 77.870867];
+    const myUsername = localStorage.getItem("studentUser") || "student01";
 
-function checkSession() {
-    const loginTime = localStorage.getItem("loginTime");
-    const currentTime = new Date().getTime();
-
-    if (!loginTime || (currentTime - loginTime > SESSION_DURATION)) {
-        alert("Session Expired! Please login again.");
-        logout();
+    // 1. Initialize Tracking after Bus Selection
+    function initTracking() {
+        selectedBusId = document.getElementById("initial-bus-select").value;
+        document.getElementById("bus-name-display").innerText = selectedBusId;
+        document.getElementById("selection-screen").style.display = "none";
+        document.getElementById("ui-container").style.display = "block";
+        document.getElementById("map").style.display = "block";
+        
+        setupMap();
     }
-}
 
-// Har 1 minute mein check karega
-setInterval(checkSession, 60000);
+    function setupMap() {
+        map = L.map('map').setView(collegeLoc, 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        
+        // College Marker
+        L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College");
+        
+        // Bus Marker
+        const busIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', iconSize: [40, 40] });
+        busMarker = L.marker([0, 0], { icon: busIcon }).addTo(map);
+    }
 
-if (localStorage.getItem("studentLogin") !== "true") {
-    window.location.replace("studentlogin.html");
-} else {
-    document.getElementById("ui-container").style.display = "block";
-    document.getElementById("map").style.display = "block";
-    checkSession(); // Initial check
-}
+    // 2. Listen for Location Updates
+    socket.on("bus-moved", (data) => {
+        // Sirf wahi bus dikhao jo student ne select ki hai
+        if (data.busId === selectedBusId) {
+            const { lat, lng } = data;
+            busMarker.setLatLng([lat, lng]);
+            
+            document.getElementById("status").innerText = selectedBusId + " is LIVE 🟢";
+            document.getElementById("status").style.background = "#22c55e";
 
-function logout() {
-    localStorage.clear();
-    window.location.href = "studentlogin.html";
-}
-
-// --- 2. MAP & SOCKET LOGIC ---
-const collegeLat = 30.335691;
-const collegeLng = 77.870867;
-var map = L.map('map').setView([collegeLat, collegeLng], 14); 
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-var busIcon = L.icon({ iconUrl: 'bus.png', iconSize: [40, 40], iconAnchor: [20, 20] });
-L.marker([collegeLat, collegeLng]).addTo(map).bindPopup("🏫 Shivalik College").openPopup();
-
-var busMarker = L.marker([0, 0], { icon: busIcon }).addTo(map);
-var stopMarker = null;
-var alertRangeCircle = null;
-let routingControl = null;
-let firstLocationReceived = false;
-let userStopCoords = null;
-let alertFired = false;
-
-const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-
-const socket = io();
-const myUsername = localStorage.getItem("studentUser");
-
-function setCustomStop() {
-    const selector = document.getElementById("stop-selector");
-    const val = selector.value;
-    if (!val) return;
-
-    const [lat, lng] = val.split(",").map(Number);
-    userStopCoords = { lat, lng };
-    alertFired = false;
-
-    if (stopMarker) map.removeLayer(stopMarker);
-    if (alertRangeCircle) map.removeLayer(alertRangeCircle);
-
-    stopMarker = L.marker([lat, lng]).addTo(map).bindPopup("My Stop").openPopup();
-    alertRangeCircle = L.circle([lat, lng], { color: '#e74c3c', radius: 400 }).addTo(map);
-
-    // --- STOP LOCK LOGIC ---
-    // Server ko batao ki student ne stop set kar liya hai
-    socket.emit('student-set-stop', { id: myUsername, stop: selector.options[selector.selectedIndex].text });
-    selector.disabled = true; // Dropdown lock kar do
-    
-    alert("Stop Locked! Only Admin can change it now.");
-}
-
-socket.on("bus-moved", (data) => {
-    const { lat, lng } = data;
-    busMarker.setLatLng([lat, lng]);
-    
-    document.getElementById("status").innerText = "Bus is Live 🟢";
-    document.getElementById("status").style.background = "#27ae60";
-
-    if (userStopCoords && !alertFired) {
-        let distanceToStop = map.distance([lat, lng], [userStopCoords.lat, userStopCoords.lng]);
-        if (distanceToStop < 400) {
-            alertSound.play();
-            showPopupAlert();
-            alertFired = true;
+            // Update Routing & ETA
+            if (routingControl) map.removeControl(routingControl);
+            routingControl = L.Routing.control({
+                waypoints: [L.latLng(lat, lng), L.latLng(collegeLoc[0], collegeLoc[1])],
+                createMarker: () => null,
+                addWaypoints: false,
+                show: false
+            }).on('routesfound', (e) => {
+                document.getElementById('eta').innerText = Math.round(e.routes[0].summary.totalTime / 60) + " mins";
+            }).addTo(map);
         }
+    });
+
+    function setCustomStop() {
+        const val = document.getElementById("stop-selector").value;
+        if (!val) return;
+
+        const [lat, lng] = val.split(",").map(Number);
+        userStopCoords = { lat, lng };
+
+        L.marker([lat, lng]).addTo(map).bindPopup("My Stop").openPopup();
+        L.circle([lat, lng], { color: 'red', radius: 400 }).addTo(map);
+
+        // Lock Stop in DB
+        socket.emit('student-set-stop', { 
+            id: myUsername, 
+            stop: document.getElementById("stop-selector").selectedOptions[0].text,
+            busSelected: selectedBusId 
+        });
+        
+        document.getElementById("stop-selector").disabled = true;
+        alert("Stop Locked to " + selectedBusId);
     }
 
-    if (!firstLocationReceived) {
-        routingControl = L.Routing.control({
-            waypoints: [L.latLng(lat, lng), L.latLng(collegeLat, collegeLng)],
-            createMarker: () => null
-        }).on('routesfound', (e) => {
-            document.getElementById('eta').innerText = Math.round(e.routes[0].summary.totalTime / 60) + " mins";
-        }).addTo(map);
-        firstLocationReceived = true;
-    } else {
-        routingControl.setWaypoints([L.latLng(lat, lng), L.latLng(collegeLat, collegeLng)]);
+    function logout() {
+        localStorage.clear();
+        window.location.href = "studentlogin.html";
     }
-});
-
-// Admin jab reset karega toh dropdown wapas khul jayega
-socket.on('stop-updated-for-student', (data) => {
-    if(data.id === myUsername && !data.newStop) {
-        document.getElementById('stop-selector').disabled = false;
-        document.getElementById('stop-selector').value = "";
-        if (stopMarker) map.removeLayer(stopMarker);
-        if (alertRangeCircle) map.removeLayer(alertRangeCircle);
-        alert("Admin has reset your stop. You can choose again.");
-    }
-});
-
-function showPopupAlert() {
-    const popup = document.createElement("div");
-    popup.className = "arrival-popup";
-    popup.innerHTML = `<h3>🔔 Bus Alert!</h3><p>Bus is within 400m of your stop!</p><button onclick="this.parentElement.remove()">Dismiss</button>`;
-    document.body.appendChild(popup);
-}
 </script>
 </body>
 </html>
