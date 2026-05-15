@@ -2,145 +2,140 @@
 <html>
 <head>
     <title>Driver Panel - Live Tracking</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    
     <style>
         body { text-align: center; font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 0; }
-        .login-card { max-width: 400px; margin: 20px auto; padding: 30px; border-radius: 20px; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .icon-circle { font-size: 50px; margin-bottom: 10px; }
-        .status-container {
-            margin: 20px auto;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            border: 1px solid #eee;
-        }
-        .btn-start { background: #27ae60; color: white; padding: 18px; border: none; border-radius: 12px; cursor: pointer; font-size: 20px; font-weight: bold; width: 100%; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3); }
-        .btn-stop { background: #e74c3c; color: white; padding: 18px; border: none; border-radius: 12px; cursor: pointer; font-size: 20px; font-weight: bold; width: 100%; display: none; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3); }
-        #live-status { font-weight: bold; color: #2c3e50; margin: 10px 0; }
-        .pulse {
-            height: 12px; width: 12px; background-color: #27ae60;
-            border-radius: 50%; display: inline-block;
-            margin-right: 10px; animation: blink 1s infinite;
-        }
+        #map { height: 300px; width: 100%; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
+        .login-card { max-width: 450px; margin: 10px auto; padding: 20px; border-radius: 20px; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .icon-circle { font-size: 40px; margin-bottom: 5px; }
+        .status-container { margin: 15px auto; padding: 15px; background: #f8f9fa; border-radius: 15px; border: 1px solid #eee; }
+        .btn-start { background: #27ae60; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3); }
+        .btn-stop { background: #e74c3c; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; display: none; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3); }
+        #live-status { font-weight: bold; color: #2c3e50; margin: 5px 0; }
+        .pulse { height: 12px; width: 12px; background-color: #27ae60; border-radius: 50%; display: inline-block; margin-right: 10px; animation: blink 1s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        .logout-btn { background: #95a5a6; color: white; margin-top: 20px; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 14px; }
+        .logout-btn { background: #95a5a6; color: white; margin-top: 15px; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 14px; }
         #error-log { color: #e74c3c; font-size: 13px; margin-top: 10px; display: none; background: #fdf2f2; padding: 10px; border-radius: 5px; }
-        #debug-info { font-size: 11px; color: #95a5a6; margin-top: 15px; }
+        .bus-badge { background: #f59e0b; color: white; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 10px; display: inline-block; }
     </style>
 </head>
 
 <body>
+    <div id="map"></div>
 
     <div class="login-card">
+        <div class="bus-badge" id="bus-id-display">Detecting Bus...</div>
         <div class="icon-circle">🚌</div>
-        <h2>Bus Driver Panel</h2>
+        <h2>Driver Control Panel</h2>
         
         <div class="status-container">
             <p id="live-status">Connecting to Server...</p>
-            <div id="active-indicator" style="display:none;"><span class="pulse"></span>Sharing Live Location</div>
+            <div id="active-indicator" style="display:none;"><span class="pulse"></span>Sharing Live Location & Route</div>
             <p id="error-log"></p>
         </div>
 
         <button id="startBtn" class="btn-start" onclick="toggleTracking(true)">START TRIP</button>
         <button id="stopBtn" class="btn-stop" onclick="toggleTracking(false)">END TRIP</button>
         
-        <div id="debug-info">Last Sent: <span id="last-coords">None</span></div>
+        <div id="debug-info" style="font-size: 12px; color: #7f8c8d; margin-top: 10px;">
+            Coords: <span id="last-coords">None</span>
+        </div>
 
         <button class="logout-btn" onclick="logout()">Logout Account</button>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+
     <script>
-    // 1. Security Check
+    // 1. Initial Config
+    const collegeLoc = [30.3400, 77.9500]; // Shivalik College Coordinates
+    let map, driverMarker, routingControl, watchId = null;
+    const socket = io();
+
+    // Determine Bus ID from Login
+    const loggedUser = localStorage.getItem("driverUsername") || "driver01";
+    const busId = loggedUser === "driver02" ? "BUS-02" : "BUS-01";
+    document.getElementById("bus-id-display").innerText = "Assigned: " + busId;
+
     if (localStorage.getItem("driverLogin") !== "true") {
         window.location.replace("driverlogin.html");
     }
 
-    // 2. Socket Connection (Uses current host/IP automatically)
-    const socket = io(); 
-
-    let watchId = null;
+    // Initialize Map
+    map = L.map('map').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     socket.on('connect', () => {
         document.getElementById("live-status").innerText = "Connected & Ready ✅";
         document.getElementById("live-status").style.color = "#27ae60";
     });
 
-    socket.on('disconnect', () => {
-        document.getElementById("live-status").innerText = "Connection Lost ❌";
-        document.getElementById("live-status").style.color = "#e74c3c";
-    });
-
-    // 3. Tracking Logic
+    // 2. Tracking & Routing Logic
     function toggleTracking(status) {
         const startBtn = document.getElementById("startBtn");
         const stopBtn = document.getElementById("stopBtn");
         const liveStatus = document.getElementById("live-status");
-        const activeIndicator = document.getElementById("active-indicator");
-        const errorLog = document.getElementById("error-log");
 
         if (status) {
             if ("geolocation" in navigator) {
-                liveStatus.innerText = "Activating GPS...";
+                liveStatus.innerText = "Finding GPS...";
                 startBtn.style.display = "none";
                 stopBtn.style.display = "block";
 
-                // Watch Position for real-time tracking
-                watchId = navigator.geolocation.watchPosition(
-                    pos => {
-                        const coords = {
-                            lat: pos.coords.latitude,
-                            lng: pos.coords.longitude,
-                            busId: "COLLEGE-BUS-01",
-                            timestamp: new Date().toLocaleTimeString()
-                        };
-                        
-                        // Emit to server
-                        socket.emit("bus-moved", coords); 
-                        
-                        // UI Update
-                        liveStatus.innerText = "Trip is LIVE 🛰️";
-                        document.getElementById("last-coords").innerText = 
-                            coords.lat.toFixed(5) + ", " + coords.lng.toFixed(5);
-                        activeIndicator.style.display = "block";
-                        errorLog.style.display = "none";
-                        console.log("Location Shared:", coords);
-                    },
-                    err => {
-                        console.error("GPS Error:", err);
-                        errorLog.style.display = "block";
-                        activeIndicator.style.display = "none";
-                        
-                        if(err.code === 1) errorLog.innerText = "❌ Permission Denied! Please enable Location in Browser Settings.";
-                        else if(err.code === 3) errorLog.innerText = "❌ GPS Timeout. Please go near a window or outside.";
-                        else errorLog.innerText = "❌ GPS Error: " + err.message;
-                    },
-                    { 
-                        enableHighAccuracy: true, // Sabse accurate location ke liye
-                        maximumAge: 0, 
-                        timeout: 15000 
+                watchId = navigator.geolocation.watchPosition(pos => {
+                    const { latitude, longitude } = pos.coords;
+                    const currentPos = [latitude, longitude];
+
+                    // Update UI
+                    liveStatus.innerText = "Trip is LIVE 🛰️";
+                    document.getElementById("last-coords").innerText = latitude.toFixed(5) + ", " + longitude.toFixed(5);
+                    document.getElementById("active-indicator").style.display = "block";
+
+                    // Update Map Marker
+                    if (!driverMarker) {
+                        driverMarker = L.marker(currentPos).addTo(map);
+                        map.setView(currentPos, 15);
+                    } else {
+                        driverMarker.setLatLng(currentPos);
                     }
-                );
-            } else {
-                alert("Mobile doesn't support GPS tracking.");
+
+                    // Update Route Line
+                    if (routingControl) map.removeControl(routingControl);
+                    routingControl = L.Routing.control({
+                        waypoints: [L.latLng(latitude, longitude), L.latLng(collegeLoc[0], collegeLoc[1])],
+                        createMarker: function() { return null; }, // Hide extra waypoint markers
+                        lineOptions: { styles: [{ color: '#2563eb', weight: 5 }] },
+                        addWaypoints: false,
+                        draggableWaypoints: false,
+                        show: false // Hide text instructions
+                    }).addTo(map);
+
+                    // Send to Server with dynamic Bus ID
+                    socket.emit("bus-moved", { busId, lat: latitude, lng: longitude });
+
+                }, err => {
+                    document.getElementById("error-log").style.display = "block";
+                    document.getElementById("error-log").innerText = "GPS Error: " + err.message;
+                }, { enableHighAccuracy: true });
             }
         } else {
-            // Stop logic
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
+            // End Trip
+            if (watchId) navigator.geolocation.clearWatch(watchId);
             startBtn.style.display = "block";
             stopBtn.style.display = "none";
             liveStatus.innerText = "Trip Ended Successfully";
-            activeIndicator.style.display = "none";
-            document.getElementById("last-coords").innerText = "None";
+            document.getElementById("active-indicator").style.display = "none";
+            if (routingControl) map.removeControl(routingControl);
         }
     }
 
     function logout() {
         if (watchId) navigator.geolocation.clearWatch(watchId);
-        localStorage.removeItem("driverLogin");
+        localStorage.clear();
         window.location.href = "driverlogin.html";
     }
     </script>
