@@ -16,11 +16,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname)); 
 
-// --- ✅ SOLUTION: HOME PAGE ROUTE ---
-// Jab koi direct link open karega, toh ye Driver Login page dikhayega
+// --- 🌐 HTML ROUTES FIX (404 Error se bachne ke liye) ---
+
+// Home page: Seedha Driver Login dikhayega
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'driverlogin.html'));
 });
+
+// Login Pages
+app.get('/studentlogin', (req, res) => res.sendFile(path.join(__dirname, 'studentlogin.html')));
+app.get('/adminlogin', (req, res) => res.sendFile(path.join(__dirname, 'adminlogin.html')));
+
+// Dashboards (Redirect hone ke baad yahan aayenge)
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/student.html', (req, res) => res.sendFile(path.join(__dirname, 'student.html')));
+app.get('/driver.html', (req, res) => res.sendFile(path.join(__dirname, 'driver.html')));
 
 // --- DATABASE IN MEMORY ---
 let lastBusLocation = null;
@@ -38,12 +48,12 @@ app.post("/login", (req, res) => {
         (role === "admin" && username === "admin01" && password === "admin@123")) {
         
         if(role === "admin") {
-            // Render (Linux) par check karein optimizer file execute ho sakti hai ya nahi
             try {
+                // Render par binary execute karne ke liye './' lagana zaroori hai
                 const cppEngine = spawn('./optimizer', ['check']);
                 cppEngine.stdout.on('data', (data) => console.log(`C++ Status: ${data}`));
             } catch (e) {
-                console.log("C++ Engine run nahi ho paya");
+                console.log("C++ Engine run nahi ho paya - binary missing ho sakti hai");
             }
         }
 
@@ -64,8 +74,8 @@ io.on("connection", (socket) => {
             lastBusLocation = data; 
             io.emit("bus-moved", data);
 
-            // Python Integration
-            const pythonProcess = spawn('python3', ['analytics.py']); // Render par 'python3' use hota hai
+            // Python Integration (Render par python3 hota hai)
+            const pythonProcess = spawn('python3', ['analytics.py']); 
             
             const payload = JSON.stringify({
                 bus_lat: data.lat,
@@ -81,7 +91,7 @@ io.on("connection", (socket) => {
                     const analysis = JSON.parse(result.toString());
                     io.emit("eta-update", analysis);
                 } catch (e) {
-                    console.log("Python script error");
+                    console.log("Python script output error");
                 }
             });
         }
@@ -110,8 +120,8 @@ io.on("connection", (socket) => {
     });
 });
 
-// Render ke liye PORT change
+// Render Dynamic Port Support
 const PORT = process.env.PORT || 3000; 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 TRACKING SERVER IS LIVE ON PORT ${PORT}`);
 });
