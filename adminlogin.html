@@ -2,42 +2,80 @@
 <html>
 <head>
     <title>Admin Login - College Bus</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #1e293b; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 350px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .error { color: #ef4444; font-size: 14px; display: none; margin-top: 10px; }
+        .login-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 100%; max-width: 350px; text-align: center; margin: 20px; }
+        h2 { color: #1e293b; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; outline: none; transition: border-color 0.3s; }
+        input:focus { border-color: #2563eb; }
+        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: background 0.3s; margin-top: 10px; }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        .error { color: #ef4444; font-size: 14px; display: none; margin-top: 15px; padding: 10px; background: #fef2f2; border-radius: 6px; border: 1px solid #fee2e2; }
     </style>
 </head>
 <body>
     <div class="login-card">
         <h2>👨‍✈️ Admin Portal</h2>
-        <input type="text" id="user" placeholder="Admin Username">
-        <input type="password" id="pass" placeholder="Admin Password">
-        <button onclick="adminLogin()">Login to Dashboard</button>
-        <p id="err" class="error">❌ Invalid Admin Credentials</p>
+        <input type="text" id="user" placeholder="Admin Username (admin01)" required>
+        <input type="password" id="pass" placeholder="Admin Password (admin@123)" required>
+        <button id="loginBtn" onclick="adminLogin()">Login to Dashboard</button>
+        <p id="err" class="error"></p>
     </div>
 
     <script>
         async function adminLogin() {
-            const u = document.getElementById("user").value;
-            const p = document.getElementById("pass").value;
-            
-            const res = await fetch("/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username: u, password: p, role: "admin" })
-            });
+            const u = document.getElementById("user").value.trim();
+            const p = document.getElementById("pass").value.trim();
+            const errEl = document.getElementById("err");
+            const btn = document.getElementById("loginBtn");
 
-            const data = await res.json();
-            if (data.success) {
-                localStorage.setItem("adminLogin", "true");
-                location.href = "admin.html";
-            } else {
-                document.getElementById("err").style.display = "block";
+            if (!u || !p) {
+                errEl.style.display = "block";
+                errEl.innerText = "⚠️ Username and Password required";
+                return;
+            }
+
+            // UI Changes
+            errEl.style.display = "none";
+            btn.innerText = "Authenticating & Starting Engine...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch("/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: u, password: p, role: "admin" })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem("adminLogin", "true");
+                    // Role aur user save karna dashboard ke liye achha rehta hai
+                    localStorage.setItem("userRole", "admin");
+                    
+                    window.location.href = "admin.html";
+                } else {
+                    btn.innerText = "Login to Dashboard";
+                    btn.disabled = false;
+                    errEl.style.display = "block";
+                    errEl.innerText = "❌ " + (data.message || "Invalid Admin Credentials");
+                }
+            } catch (err) {
+                btn.innerText = "Login to Dashboard";
+                btn.disabled = false;
+                errEl.style.display = "block";
+                errEl.innerText = "⚠️ Server Error. Check if Render app is sleeping.";
+                console.error("Admin Login Error:", err);
             }
         }
+
+        // Enter key support
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') adminLogin();
+        });
     </script>
 </body>
 </html>
