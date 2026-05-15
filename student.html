@@ -31,7 +31,6 @@
         #eta-box { font-size: 14px; text-align: center; }
         .logout-btn { background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         
-        /* Bus Selection Card */
         .selection-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 9999;
@@ -63,7 +62,7 @@
                 <option value="30.2956,78.0558">Mahindra Showroom</option>
                 <option value="30.2883,78.0234">Kargi Chowk</option>
                 <option value="30.3415,77.8820">Prem Nagar</option>
-            </select>
+                <option value="30.3640,77.8130">Selaqui Market</option> </select>
         </div>
         <div>
             <div id="status" class="status-badge">Searching for Bus...</div>
@@ -84,10 +83,12 @@
     const socket = io();
     let map, busMarker, routingControl, userStopCoords;
     let selectedBusId = "BUS-01";
-    const collegeLoc = [30.335691, 77.870867];
+    
+    // Shivalik College of Engineering, Selaqui (Correct Location)
+    const collegeLoc = [30.3606, 77.8306]; 
+    
     const myUsername = localStorage.getItem("studentUser") || "student01";
 
-    // 1. Initialize Tracking after Bus Selection
     function initTracking() {
         selectedBusId = document.getElementById("initial-bus-select").value;
         document.getElementById("bus-name-display").innerText = selectedBusId;
@@ -103,16 +104,14 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         
         // College Marker
-        L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College");
+        L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College (Selaqui)").openPopup();
         
         // Bus Marker
         const busIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', iconSize: [40, 40] });
         busMarker = L.marker([0, 0], { icon: busIcon }).addTo(map);
     }
 
-    // 2. Listen for Location Updates
     socket.on("bus-moved", (data) => {
-        // Sirf wahi bus dikhao jo student ne select ki hai
         if (data.busId === selectedBusId) {
             const { lat, lng } = data;
             busMarker.setLatLng([lat, lng]);
@@ -120,12 +119,16 @@
             document.getElementById("status").innerText = selectedBusId + " is LIVE 🟢";
             document.getElementById("status").style.background = "#22c55e";
 
-            // Update Routing & ETA
+            // Update Routing & ETA to Shivalik College
             if (routingControl) map.removeControl(routingControl);
             routingControl = L.Routing.control({
-                waypoints: [L.latLng(lat, lng), L.latLng(collegeLoc[0], collegeLoc[1])],
+                waypoints: [
+                    L.latLng(lat, lng), 
+                    L.latLng(collegeLoc[0], collegeLoc[1])
+                ],
                 createMarker: () => null,
                 addWaypoints: false,
+                draggableWaypoints: false,
                 show: false
             }).on('routesfound', (e) => {
                 document.getElementById('eta').innerText = Math.round(e.routes[0].summary.totalTime / 60) + " mins";
@@ -143,7 +146,6 @@
         L.marker([lat, lng]).addTo(map).bindPopup("My Stop").openPopup();
         L.circle([lat, lng], { color: 'red', radius: 400 }).addTo(map);
 
-        // Lock Stop in DB
         socket.emit('student-set-stop', { 
             id: myUsername, 
             stop: document.getElementById("stop-selector").selectedOptions[0].text,
