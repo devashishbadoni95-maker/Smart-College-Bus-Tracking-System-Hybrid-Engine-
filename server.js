@@ -3,7 +3,7 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
-const { spawn } = require("child_process"); // <--- Multi-language support ke liye
+const { spawn } = require("child_process");
 
 const app = express();
 const server = http.createServer(app);
@@ -15,6 +15,12 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname)); 
+
+// --- ✅ SOLUTION: HOME PAGE ROUTE ---
+// Jab koi direct link open karega, toh ye Driver Login page dikhayega
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'driverlogin.html'));
+});
 
 // --- DATABASE IN MEMORY ---
 let lastBusLocation = null;
@@ -31,10 +37,14 @@ app.post("/login", (req, res) => {
         (role === "student" && (username === "student01" || username === "student02") && password === "std@123") ||
         (role === "admin" && username === "admin01" && password === "admin@123")) {
         
-        // C++ Engine ko trigger karna jab Admin login kare
         if(role === "admin") {
-            const cppEngine = spawn('./optimizer', ['check']);
-            cppEngine.stdout.on('data', (data) => console.log(`C++ Status: ${data}`));
+            // Render (Linux) par check karein optimizer file execute ho sakti hai ya nahi
+            try {
+                const cppEngine = spawn('./optimizer', ['check']);
+                cppEngine.stdout.on('data', (data) => console.log(`C++ Status: ${data}`));
+            } catch (e) {
+                console.log("C++ Engine run nahi ho paya");
+            }
         }
 
         return res.json({ success: true });
@@ -49,15 +59,13 @@ io.on("connection", (socket) => {
     if (lastBusLocation) socket.emit("bus-moved", lastBusLocation);
     socket.emit("update-admin-dashboard", Object.values(studentDatabase));
 
-    // 1. Driver Side: Location Update + PYTHON ANALYTICS
     socket.on("bus-moved", (data) => {
         if (data && data.lat && data.lng) {
             lastBusLocation = data; 
             io.emit("bus-moved", data);
 
-            // --- PYTHON INTEGRATION START ---
-            // Hum Python ko bus ki location aur students ke stops bhej rahe hain
-            const pythonProcess = spawn('python', ['analytics.py']);
+            // Python Integration
+            const pythonProcess = spawn('python3', ['analytics.py']); // Render par 'python3' use hota hai
             
             const payload = JSON.stringify({
                 bus_lat: data.lat,
@@ -71,13 +79,11 @@ io.on("connection", (socket) => {
             pythonProcess.stdout.on('data', (result) => {
                 try {
                     const analysis = JSON.parse(result.toString());
-                    // Har student ko uska personal ETA update bhejna
                     io.emit("eta-update", analysis);
                 } catch (e) {
-                    console.log("Python script error or invalid JSON");
+                    console.log("Python script error");
                 }
             });
-            // --- PYTHON INTEGRATION END ---
         }
     });
 
@@ -104,7 +110,8 @@ io.on("connection", (socket) => {
     });
 });
 
-const PORT = 3000;
-server.listen(PORT, "0.0.0.0", () => {
+// Render ke liye PORT change
+const PORT = process.env.PORT || 3000; 
+server.listen(PORT, () => {
     console.log(`🚀 TRACKING SERVER IS LIVE ON PORT ${PORT}`);
 });
