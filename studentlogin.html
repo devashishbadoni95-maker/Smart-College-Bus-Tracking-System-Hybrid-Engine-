@@ -10,7 +10,7 @@
         .input-group input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.3s; }
         button:hover { background: #2980b9; }
-        .error-msg { color: #e74c3c; font-size: 14px; display: none; margin-top: 10px; }
+        .error-msg { color: #e74c3c; font-size: 14px; display: none; margin-top: 10px; padding: 8px; background: #fdf2f2; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -25,63 +25,76 @@
             <input type="password" id="p" placeholder="Password (std@123)" required>
         </div>
 
-        <button type="button" onclick="login()">Access Map</button>
-        <p id="error" class="error-msg">❌ Access Denied: Check details</p>
+        <button type="button" id="loginBtn" onclick="login()">Access Map</button>
+        <p id="error" class="error-msg"></p>
     </div>
 
     <script>
-    // --- Session Configuration ---
-    const SESSION_DURATION = 30 * 60 * 1000; // 30 Minutes
+    const SESSION_DURATION = 30 * 60 * 1000; 
 
-    // Login check with Session Expiry
-    function validateExistingSession() {
+    // Page load hote hi session check karein
+    window.onload = function() {
         const isLoggedIn = localStorage.getItem("studentLogin");
         const loginTime = localStorage.getItem("loginTime");
         const currentTime = new Date().getTime();
 
-        if (isLoggedIn && loginTime) {
+        if (isLoggedIn === "true" && loginTime) {
             if (currentTime - loginTime < SESSION_DURATION) {
-                location.href = "student.html";
+                window.location.href = "student.html";
             } else {
-                // Session expire ho gaya toh saaf kar do
                 localStorage.clear();
             }
         }
-    }
-    
-    validateExistingSession();
+    };
 
     async function login() {
-        const u = document.getElementById("u").value;
-        const p = document.getElementById("p").value;
+        const u = document.getElementById("u").value.trim();
+        const p = document.getElementById("p").value.trim();
         const errorMsg = document.getElementById("error");
+        const btn = document.getElementById("loginBtn");
+
+        if (!u || !p) {
+            errorMsg.style.display = "block";
+            errorMsg.innerText = "⚠️ Please fill all fields";
+            return;
+        }
 
         errorMsg.style.display = "none";
+        btn.innerText = "Checking...";
+        btn.disabled = true;
 
         try {
+            // Render URL structure ke hisaab se fetch
             const res = await fetch("/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username: u, password: p, role: "student" })
+                body: JSON.stringify({ 
+                    username: u, 
+                    password: p, 
+                    role: "student" 
+                })
             });
 
             const data = await res.json();
 
             if (data.success) {
-                // ✅ Login data aur Current Time dono save karein
                 localStorage.setItem("studentLogin", "true");
-                localStorage.setItem("loginTime", new Date().getTime()); // Session Start Time
-                localStorage.setItem("studentUser", u); // ID track karne ke liye
+                localStorage.setItem("loginTime", new Date().getTime());
+                localStorage.setItem("studentUser", u);
                 
-                location.href = "student.html";
+                window.location.href = "student.html";
             } else {
+                btn.innerText = "Access Map";
+                btn.disabled = false;
                 errorMsg.style.display = "block";
-                errorMsg.innerText = "❌ Invalid Username or Password";
+                errorMsg.innerText = "❌ " + (data.message || "Invalid Details");
             }
         } catch (err) {
-            console.error("Login Error:", err);
+            btn.innerText = "Access Map";
+            btn.disabled = false;
             errorMsg.style.display = "block";
-            errorMsg.innerText = "❌ Server error. Try again!";
+            errorMsg.innerText = "⚠️ Connection Error. Check if server is running.";
+            console.error("Login Error:", err);
         }
     }
 
