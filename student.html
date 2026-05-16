@@ -37,6 +37,11 @@
             display: flex; justify-content: center; align-items: center;
         }
         .selection-card { background: white; padding: 30px; border-radius: 20px; text-align: center; width: 80%; max-width: 350px; }
+
+        /* 🔥 Bus Marker ko road par smoothly chalane ke liye CSS */
+        .leaflet-marker-icon {
+            transition: transform 1s linear !important;
+        }
     </style>
 </head>
 
@@ -59,12 +64,13 @@
         <div>
             <select id="stop-selector" onchange="setCustomStop()">
                 <option value="">-- Set Alert Stop --</option>
-                <option value="30.298077,78.068759"> Ambiwala Gurudwara</option>
+                <option value="30.298077,78.068759">Ambiwala Gurudwara</option>
                 <option value="30.2883,78.0234">Kargi Chowk</option>
                 <option value="30.295770,78.056032">Rispana Pull</option>
-                 <option value="30.278211,77.989961">Chandrabani Chalk</option>
-                 <option value="30.296627,77.996641">Bansal Home</option>
-                <option value="30.286559,77.995634">Turner Road</option> </select>
+                <option value="30.278211,77.989961">Chandrabani Chowk</option>
+                <option value="30.296627,77.996641">Bansal Home</option>
+                <option value="30.286559,77.995634">Turner Road</option> 
+            </select>
         </div>
         <div>
             <div id="status" class="status-badge">Searching for Bus...</div>
@@ -86,7 +92,7 @@
     let map, busMarker, routingControl, userStopCoords;
     let selectedBusId = "BUS-01";
     
-    // Shivalik College of Engineering, Selaqui (Correct Location)
+    // Shivalik College of Engineering, Selaqui (Correct Location Fixed)
     const collegeLoc = [30.336050, 77.870357]; 
     
     const myUsername = localStorage.getItem("studentUser") || "student01";
@@ -108,15 +114,29 @@
         // College Marker
         L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College (Selaqui)").openPopup();
         
-        // Bus Marker
-        const busIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', iconSize: [40, 40] });
+        // 🔥 High-Quality Bus PNG Image Icon Setup
+        const busIcon = L.icon({ 
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', 
+            iconSize: [45, 45],
+            iconAnchor: [22, 22]
+        });
+        
+        // Initializing marker at 0,0 (hidden)
         busMarker = L.marker([0, 0], { icon: busIcon }).addTo(map);
     }
 
     socket.on("bus-moved", (data) => {
         if (data.busId === selectedBusId) {
             const { lat, lng } = data;
-            busMarker.setLatLng([lat, lng]);
+            
+            // 🔥 Check if bus is newly detected to prevent 0,0 jump animation
+            if (busMarker.getLatLng().lat === 0) {
+                busMarker.setLatLng([lat, lng]);
+                map.setView([lat, lng], 15);
+            } else {
+                // Smooth transition moves it now
+                busMarker.setLatLng([lat, lng]);
+            }
             
             document.getElementById("status").innerText = selectedBusId + " is LIVE 🟢";
             document.getElementById("status").style.background = "#22c55e";
