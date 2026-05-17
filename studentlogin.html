@@ -4,55 +4,174 @@
     <title>Student Login - Tracking System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 320px; text-align: center; }
-        .icon-circle { font-size: 50px; margin-bottom: 10px; }
-        .input-group input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
-        button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.3s; font-weight: bold; margin-top: 5px; }
-        button:hover { background: #2980b9; }
-        .error-msg { color: #e74c3c; font-size: 14px; display: none; margin-top: 10px; padding: 8px; background: #fdf2f2; border-radius: 5px; font-weight: 500; }
-        .success-msg { color: #27ae60; font-size: 13px; display: none; margin-top: 5px; font-weight: bold; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: #ffffff; 
+            height: 100vh; 
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Split View Setup */
+        .login-split-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Branding Panel Left Side */
+        .branding-panel {
+            flex: 1.2;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            color: white;
+            position: relative;
+        }
+        .branding-panel::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 10% 90%, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+        }
+        .panel-icon { font-size: 70px; margin-bottom: 20px; }
+        .branding-panel h1 { font-size: 42px; font-weight: 800; margin-bottom: 15px; }
+        .branding-panel p { color: #bfdbfe; font-size: 16px; max-width: 450px; line-height: 1.6; }
+
+        /* Dynamic Form Panel Right Side */
+        .form-panel {
+            flex: 0.9;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            background: #ffffff;
+        }
+        .form-container-box {
+            width: 100%;
+            max-width: 380px;
+        }
+        .form-container-box h2 {
+            color: #1e293b;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        /* Dynamic subtitle managed by socket */
+        #clg-subtitle {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 35px;
+        }
+
+        /* Premium Form Controls */
+        .input-group { position: relative; margin-bottom: 20px; }
+        .input-group input { 
+            width: 100%; 
+            padding: 14px 16px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 10px; 
+            font-size: 15px; 
+            outline: none;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        .input-group input:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+        
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background: #2563eb; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            transition: all 0.2s ease; 
+            font-weight: 600; 
+            margin-top: 5px;
+            box-shadow: 0 4px 12px rgba(37,99,235,0.2);
+        }
+        button:hover { background: #1d4ed8; transform: translateY(-1px); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        .error-msg { 
+            color: #dc2626; 
+            font-size: 14px; 
+            display: none; 
+            margin-top: 15px; 
+            padding: 12px; 
+            background: #fef2f2; 
+            border-radius: 8px; 
+            font-weight: 500;
+            border-left: 4px solid #dc2626;
+        }
+        .success-msg { color: #16a34a; font-size: 14px; display: none; margin-bottom: 15px; font-weight: 600; }
         .hidden { display: none; }
+        .back-btn { background: #64748b; margin-top: 12px; box-shadow: none; }
+        .back-btn:hover { background: #475569; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .login-split-container { flex-direction: column; }
+            .branding-panel { flex: none; padding: 40px 20px; text-align: center; align-items: center; }
+            .branding-panel h1 { font-size: 28px; }
+            .panel-icon { font-size: 50px; }
+            .form-panel { flex: 1; padding: 40px 20px; }
+        }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <div class="icon-circle">🚌</div>
-        <h2>Student Login</h2>
-        <p id="clg-subtitle" style="color: #7f8c8d; font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Connecting to Tracker...</p>
-        
-        <div id="credentials-section">
-            <div class="input-group">
-                <input type="text" id="u" placeholder="Student ID (student01)" required>
-            </div>
-            <div class="input-group">
-                <input type="email" id="email" placeholder="Enter Your Gmail Address" required>
-            </div>
-            <button type="button" id="sendOtpBtn" onclick="requestOTP()">Send OTP</button>
+
+    <div class="login-split-container">
+        <div class="branding-panel">
+            <div class="panel-icon">🎓</div>
+            <h1>Student Portal</h1>
+            <p>Access live fleet movements, secure your tracking routes, and monitor real-time estimated arrivals for your assigned route vehicle terminal.</p>
         </div>
 
-        <div id="otp-section" class="hidden">
-            <p class="success-msg" id="success-info" style="display: block;">📩 OTP generated successfully!</p>
-            <div class="input-group">
-                <input type="text" id="otp" placeholder="Enter 6-Digit OTP" maxlength="6" required>
-            </div>
-            <button type="button" id="verifyBtn" style="background: #2ecc71;" onclick="verifyOTP()">Verify & Access Map</button>
-            <button type="button" style="background: #95a5a6; font-size: 12px; padding: 6px; margin-top: 10px;" onclick="resetForm()">Back</button>
-        </div>
+        <div class="form-panel">
+            <div class="form-container-box">
+                <h2>Verification Gateway</h2>
+                <p id="clg-subtitle">Connecting to secure core database infrastructure...</p>
+                
+                <div id="credentials-section">
+                    <div class="input-group">
+                        <input type="text" id="u" placeholder="Student Roll ID (e.g., student01)" required>
+                    </div>
+                    <div class="input-group">
+                        <input type="email" id="email" placeholder="Registered Gmail Address" required>
+                    </div>
+                    <button type="button" id="sendOtpBtn" onclick="requestOTP()">Send Verification Code</button>
+                </div>
 
-        <p id="error" class="error-msg"></p>
+                <div id="otp-section" class="hidden">
+                    <p class="success-msg" id="success-info" style="display: block;">📩 Verification Token dispatched to session ledger.</p>
+                    <div class="input-group">
+                        <input type="text" id="otp" placeholder="Enter 6-Digit Secure OTP" maxlength="6" required>
+                    </div>
+                    <button type="button" id="verifyBtn" style="background: #16a34a;" onclick="verifyOTP()">Verify & Mount Map Core</button>
+                    <button type="button" class="back-btn" onclick="resetForm()">Return Back</button>
+                </div>
+
+                <p id="error" class="error-msg"></p>
+            </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
     const SESSION_DURATION = 30 * 60 * 1000; 
-    const socket = io(); // Socket initialize kiya
+    const socket = io();
 
-    // 🔥 LIVE COLLEGE NAME LISTENER
-    // Server se jaise hi naya naam milega, ye automatic bina refresh kiye badal dega
     socket.on("update-college-name", (collegeName) => {
-        document.getElementById("clg-subtitle").innerText = `${collegeName} Tracker`;
-        document.title = `Student Login - ${collegeName} Bus`;
+        document.getElementById("clg-subtitle").innerText = `${collegeName} Student Security Network`;
+        document.title = `Student Security Login - ${collegeName}`;
     });
 
     window.onload = function() {
@@ -76,12 +195,12 @@
         const sendBtn = document.getElementById("sendOtpBtn");
         
         if (!u || !email) {
-            showError("⚠️ Please enter both Student ID and Gmail");
+            showError("⚠️ Please populate both Student ID and registered Email parameters.");
             return;
         }
 
         errorMsg.style.display = "none";
-        sendBtn.innerText = "Sending OTP...";
+        sendBtn.innerText = "Transmitting OTP Engine...";
         sendBtn.disabled = true;
 
         try {
@@ -97,20 +216,19 @@
                 localStorage.setItem("tempUser", u);
                 localStorage.setItem("tempEmail", email);
                 
-                // Testing mode me alert dikhega
                 alert(`🔑 Project Test Mode OTP: ${data.testingOtp}`);
                 
                 document.getElementById("credentials-section").classList.add("hidden");
                 document.getElementById("otp-section").classList.remove("hidden");
             } else {
-                sendBtn.innerText = "Send OTP";
+                sendBtn.innerText = "Send Verification Code";
                 sendBtn.disabled = false;
-                showError("❌ " + (data.message || "Failed to send OTP"));
+                showError("❌ " + (data.message || "Failed to finalize token transmission."));
             }
         } catch (err) {
-            sendBtn.innerText = "Send OTP";
+            sendBtn.innerText = "Send Verification Code";
             sendBtn.disabled = false;
-            showError("⚠️ Server Connection Error.");
+            showError("⚠️ Network latency or Cloud server handshakes slow. Try again.");
             console.error(err);
         }
     }
@@ -122,11 +240,11 @@
         const verifyBtn = document.getElementById("verifyBtn");
 
         if (!otp || otp.length !== 6) {
-            showError("⚠️ Enter a valid 6-digit OTP");
+            showError("⚠️ Invalid context block. Pass an accurate 6-digit integer code.");
             return;
         }
 
-        verifyBtn.innerText = "Verifying...";
+        verifyBtn.innerText = "Authorizing Profile...";
         verifyBtn.disabled = true;
 
         try {
@@ -148,14 +266,14 @@
                 
                 window.location.href = "student.html";
             } else {
-                verifyBtn.innerText = "Verify & Access Map";
+                verifyBtn.innerText = "Verify & Mount Map Core";
                 verifyBtn.disabled = false;
-                showError("❌ " + (data.message || "Invalid OTP"));
+                showError("❌ " + (data.message || "Credential authentication signature failed."));
             }
         } catch (err) {
-            verifyBtn.innerText = "Verify & Access Map";
+            verifyBtn.innerText = "Verify & Mount Map Core";
             verifyBtn.disabled = false;
-            showError("⚠️ Verification failed. Server Error.");
+            showError("⚠️ Server exception handling failure during cryptographic token check.");
         }
     }
 
@@ -169,7 +287,7 @@
         document.getElementById("credentials-section").classList.remove("hidden");
         document.getElementById("otp-section").classList.add("hidden");
         document.getElementById("error").style.display = "none";
-        document.getElementById("sendOtpBtn").innerText = "Send OTP";
+        document.getElementById("sendOtpBtn").innerText = "Send Verification Code";
         document.getElementById("sendOtpBtn").disabled = false;
     }
     </script>
