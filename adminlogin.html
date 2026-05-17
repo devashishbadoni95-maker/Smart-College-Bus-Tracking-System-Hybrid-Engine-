@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Login - College Bus</title>
+    <title>Admin Login - Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #1e293b; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
@@ -17,7 +17,7 @@
 </head>
 <body>
     <div class="login-card">
-        <h2>👨‍✈️ Admin Portal</h2>
+        <h2>👨‍✈️ Admin Management System</h2>
         <input type="text" id="user" placeholder="Admin Username" required>
         <input type="password" id="pass" placeholder="Admin Password" required>
         <button id="loginBtn" onclick="adminLogin()">Login to Dashboard</button>
@@ -37,7 +37,6 @@
                 return;
             }
 
-            // UI Changes
             errEl.style.display = "none";
             btn.innerText = "Authenticating & Starting Engine...";
             btn.disabled = true;
@@ -54,10 +53,7 @@
                 if (data.success) {
                     localStorage.setItem("adminLogin", "true");
                     localStorage.setItem("userRole", "admin");
-                    // Security ke liye token ko bhi temporary save rakh sakte hain
                     localStorage.setItem("adminToken", data.token);
-                    
-                    // 🔥 Token ko URL me jod kar redirect kiya taaki server block na kare
                     window.location.href = `admin.html?token=${data.token}`;
                 } else {
                     btn.innerText = "Login to Dashboard";
@@ -69,15 +65,10 @@
                 btn.innerText = "Login to Dashboard";
                 btn.disabled = false;
                 errEl.style.display = "block";
-                errEl.innerText = "⚠️ Server Error. Check if Render app is sleeping.";
-                console.error("Admin Login Error:", err);
+                errEl.innerText = "⚠️ Server Error.";
             }
         }
-
-        // Enter key support
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') adminLogin();
-        });
+        document.addEventListener('keypress', (e) => { if (e.key === 'Enter') adminLogin(); });
     </script>
 </body>
 </html>
