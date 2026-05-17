@@ -13,27 +13,28 @@
         .container { width: 95%; max-width: 1100px; margin: 20px auto; }
         .section-title { color: #1e293b; margin: 30px 0 15px 0; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
         .bus-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        .bus-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #94a3b8; }
-        .bus-card.online { border-left-color: #22c55e; }
+        .bus-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #94a3b8; transition: all 0.3s ease; }
+        .bus-card.online { border-left-color: #22c55e; background: #f0fdf4; }
         .online .dot { background: #22c55e; animation: blink 1s infinite; }
         .dot { height: 10px; width: 10px; border-radius: 50%; background: #94a3b8; display: inline-block; margin-right: 8px; }
-        .action-btn { background: #2563eb; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s; }
-        .action-btn:hover { background: #1d4ed8; }
+        .action-btn { background: #ea580c; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2); }
+        .action-btn:hover { background: #c2410c; transform: translateY(-1px); }
         .config-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s; margin-left: 10px; }
         .config-btn:hover { background: #059669; }
-        .delete-btn { background: #dc2626; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .delete-btn { background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
         .delete-btn:hover { background: #991b1b; }
-        .table-wrapper { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .table-wrapper { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; border: 1px solid #e2e8f0; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #334155; color: white; padding: 15px; text-align: left; }
-        td { padding: 15px; border-bottom: 1px solid #edf2f7; font-size: 14px; }
+        td { padding: 15px; border-bottom: 1px solid #edf2f7; font-size: 14px; color: #334155; }
         .status-tag { padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 11px; }
         .locked { background: #dcfce7; color: #15803d; }
         .open { background: #f1f5f9; color: #64748b; }
-        .bus-badge { background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
+        .bus-badge { background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; }
         .reset-btn { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.2); }
         .reset-btn:hover { background: #dc2626; transform: scale(1.05); }
-        .logout-btn { background: #475569; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .logout-btn { background: #475569; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .logout-btn:hover { background: #334155; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
     </style>
 </head>
@@ -41,7 +42,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin: 0; font-size: 20px;">👨‍✈️ <span id="clg-title">Loading...</span> - Control Center</h1>
+        <h1 style="margin: 0; font-size: 20px;">👨‍✈️ <span id="clg-title">Loading Hub...</span> - Control Center</h1>
         <p style="margin: 0; font-size: 12px; color: #94a3b8;">System Configuration, Driver Profiles & Tracking</p>
     </div>
     <button class="logout-btn" onclick="adminLogout()">Logout</button>
@@ -57,18 +58,18 @@
     <div class="section-title">📊 Live Fleet Status</div>
     <div class="bus-status-grid">
         <div id="card-BUS-01" class="bus-card">
-            <h3>🚌 Bus No. 1</h3>
-            <div class="status-indicator"><span class="dot"></span> Status: <span id="status-BUS-01">Offline</span></div>
+            <h3>🚌 Bus No. 1 (Route A)</h3>
+            <div class="status-indicator"><span class="dot" id="dot-BUS-01"></span> Status: <span id="status-BUS-01" style="font-weight: bold; color: #94a3b8;">Offline</span></div>
         </div>
         <div id="card-BUS-02" class="bus-card">
-            <h3>🚌 Bus No. 2</h3>
-            <div class="status-indicator"><span class="dot"></span> Status: <span id="status-BUS-02">Offline</span></div>
+            <h3>🚌 Bus No. 2 (Route B)</h3>
+            <div class="status-indicator"><span class="dot" id="dot-BUS-02"></span> Status: <span id="status-BUS-02" style="font-weight: bold; color: #94a3b8;">Offline</span></div>
         </div>
     </div>
 
     <div class="section-title">
         <span>🔑 Driver Account Management</span>
-        <button class="action-btn" onclick="generateOrResetDriver()">➕ Generate / Reset Driver</button>
+        <button class="action-btn" onclick="generateOrResetDriver()">➕ Create New Driver Account</button>
     </div>
     <div class="table-wrapper">
         <table>
@@ -136,35 +137,46 @@
         const currentName = document.getElementById("clg-title").innerText;
         const newName = prompt("Enter New College/Organization Name:", currentName);
         if (newName && newName.trim() !== "") {
-            socket.emit("admin-change-college", newName);
+            socket.emit("admin-change-college", newName.trim());
             alert("🏫 College name updated successfully across all networks!");
         }
     }
 
+    // 🔥 Reactive Fleet Status Sync
     socket.on("bus-moved", (data) => {
         const card = document.getElementById(`card-${data.busId}`);
         if (card) {
             card.classList.add("online");
-            document.getElementById(`status-${data.busId}`).innerText = "LIVE";
-            document.getElementById(`status-${data.busId}`).style.color = "#22c55e";
+            const txt = document.getElementById(`status-${data.busId}`);
+            if(txt) {
+                txt.innerText = "LIVE 🟢";
+                txt.style.color = "#22c55e";
+            }
         }
     });
 
+    // 🔥 Dynamic Driver Real-time synchronization
     socket.on("update-driver-list", (driverDatabase) => {
         const driverTableBody = document.getElementById("driver-table-body");
+        if (Object.keys(driverDatabase).length === 0) {
+            driverTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#ea580c; font-weight:500;">⚠️ No accounts created yet. Use the button above to register drivers.</td></tr>`;
+            return;
+        }
+
         driverTableBody.innerHTML = "";
         Object.keys(driverDatabase).forEach(driverId => {
             const driverData = driverDatabase[driverId];
             driverTableBody.innerHTML += `
                 <tr>
-                    <td><strong>${driverId}</strong></td>
-                    <td><span class="bus-badge">${driverData.assignedBus}</span></td>
-                    <td><code>${driverData.password}</code></td>
+                    <td><strong>👤 ${driverId}</strong></td>
+                    <td><span class="bus-badge">🚌 ${driverData.assignedBus}</span></td>
+                    <td><code style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-weight:600; color:#0f172a;">${driverData.password}</code></td>
                     <td><button class="delete-btn" onclick="deleteDriver('${driverId}')">Revoke Access</button></td>
                 </tr>`;
         });
     });
 
+    // 🔥 Student Real-time panel Sync
     socket.on("update-admin-dashboard", (students) => {
         const tableBody = document.getElementById("admin-table-body");
         tableBody.innerHTML = ""; 
@@ -172,9 +184,9 @@
             const isLocked = student.locked || false;
             tableBody.innerHTML += `
                 <tr>
-                    <td><strong>${student.id.toUpperCase()}</strong></td>
-                    <td><span class="bus-badge">${student.busSelected || 'N/A'}</span></td>
-                    <td>${student.stop || '---'}</td>
+                    <td><strong>🎓 ${student.id.toUpperCase()}</strong></td>
+                    <td><span class="bus-badge">🚌 ${student.busSelected || 'N/A'}</span></td>
+                    <td>📍 ${student.stop || '---'}</td>
                     <td><span class="status-tag ${isLocked ? 'locked' : 'open'}">${isLocked ? '🔒 STOP LOCKED' : '⏳ CHOOSING...'}</span></td>
                     <td>${isLocked ? `<button class="reset-btn" onclick="resetStudent('${student.id}')">Reset Stop</button>` : `<span style="color:#94a3b8; font-style:italic; font-size:12px;">No reset needed</span>`}</td>
                 </tr>`;
@@ -185,17 +197,30 @@
         if(confirm(`Admin Alert: Reset stop for ${studentId}?`)) socket.emit("admin-reset-student", studentId);
     }
 
+    // 🔒 Strictly safe account allocation logic
     function generateOrResetDriver() {
-        const driverId = prompt("Enter Driver Username ID:");
-        const newPassword = prompt(`Set Password:`);
-        const busNum = prompt("Assign Bus (BUS-01, BUS-02):", "BUS-01");
-        if (driverId && newPassword && busNum) {
-            socket.emit("admin-save-driver", { driverId: driverId.trim(), password: newPassword.trim(), assignedBus: busNum.trim().toUpperCase() });
-        }
+        const driverId = prompt("Enter Unique Driver Username ID (e.g. driver01):");
+        if (!driverId || driverId.trim() === "") return;
+
+        const newPassword = prompt(`Set Security Password for [${driverId.trim()}]:`);
+        if (!newPassword || newPassword.trim() === "") return;
+
+        const busNum = prompt("Assign Fleet Bus Code (BUS-01, BUS-02):", "BUS-01");
+        if (!busNum || busNum.trim() === "") return;
+
+        // Push clean sanitised parameters back to Node system
+        socket.emit("admin-save-driver", { 
+            driverId: driverId.trim().toLowerCase(), 
+            password: newPassword.trim(), 
+            assignedBus: busNum.trim().toUpperCase() 
+        });
+        alert(`🎉 Credentials successfully pushed for ${driverId.trim().toLowerCase()}!`);
     }
 
     function deleteDriver(driverId) {
-        if(confirm(`🚨 Delete credentials for [${driverId}]?`)) socket.emit("admin-delete-driver", driverId);
+        if(confirm(`🚨 Severe Warning: Completely delete authentication profile for [${driverId}]? The operator will be logged out instantly.`)) {
+            socket.emit("admin-delete-driver", driverId);
+        }
     }
 </script>
 </body>
