@@ -18,8 +18,8 @@
 <body>
     <div class="login-card">
         <h2>👨‍✈️ Admin Portal</h2>
-        <input type="text" id="user" placeholder="Admin Username (admin01)" required>
-        <input type="password" id="pass" placeholder="Admin Password (admin@123)" required>
+        <input type="text" id="user" placeholder="Admin Username" required>
+        <input type="password" id="pass" placeholder="Admin Password" required>
         <button id="loginBtn" onclick="adminLogin()">Login to Dashboard</button>
         <p id="err" class="error"></p>
     </div>
@@ -53,10 +53,12 @@
 
                 if (data.success) {
                     localStorage.setItem("adminLogin", "true");
-                    // Role aur user save karna dashboard ke liye achha rehta hai
                     localStorage.setItem("userRole", "admin");
+                    // Security ke liye token ko bhi temporary save rakh sakte hain
+                    localStorage.setItem("adminToken", data.token);
                     
-                    window.location.href = "admin.html";
+                    // 🔥 Token ko URL me jod kar redirect kiya taaki server block na kare
+                    window.location.href = `admin.html?token=${data.token}`;
                 } else {
                     btn.innerText = "Login to Dashboard";
                     btn.disabled = false;
