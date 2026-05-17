@@ -12,7 +12,7 @@
             height: 100vh; 
             display: flex;
             overflow: hidden;
-            /* 🔥 Smooth transition jab background image change ho */
+            /* 🎥 Smooth transition jab backend se photo change ho */
             transition: background-image 0.5s ease-in-out, background-color 0.5s ease; 
             background-size: cover;
             background-position: center;
@@ -25,7 +25,7 @@
             display: flex;
             width: 100%;
             height: 100vh;
-            /* 🔥 Backdrop blur taaki agar background image aaye toh text makkhan dikhe */
+            /* 🌌 Backdrop blur taaki image upar aane par text chamke */
             backdrop-filter: blur(3px);
             transition: backdrop-filter 0.5s ease;
         }
@@ -33,7 +33,7 @@
         /* Left Branding Area */
         .brand-side {
             flex: 1.2;
-            /* 🔥 background ko thoda rgba overlay diya taaki photo aane par bhi text saaf padha jaye */
+            /* Gradient overlay with smooth transitions */
             background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.97) 100%);
             display: flex;
             flex-direction: column;
@@ -57,7 +57,6 @@
         /* Right Control Action Panel */
         .action-side {
             flex: 0.9;
-            /* 🔥 White background ko slight transparent kiya image dynamic transparent effect ke liye */
             background: rgba(255, 255, 255, 0.96);
             display: flex;
             flex-direction: column;
@@ -104,21 +103,21 @@
         .btn-student { background: #2563eb; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
         .btn-student:hover { background: #1d4ed8; }
         .btn-driver { background: #ea580c; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2); }
-        .btn-driver:hover { background: #c2410c; } /* Fixed duplicate color look */
+        .btn-driver:hover { background: #c2410c; } 
         .btn-admin { background: #334155; box-shadow: 0 4px 12px rgba(51, 65, 85, 0.2); }
         .btn-admin:hover { background: #1e293b; }
         
         .btn-icon { margin-right: 15px; font-size: 22px; }
         .footer-credit { margin-top: 40px; font-size: 13px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
 
-        /* Responsive Fix for mobile view screens */
+        /* Mobile View Optimization (Keeps Background Effect Intact) */
         @media (max-width: 768px) {
-            body { overflow: auto; height: auto; }
-            .split-container { flex-direction: column; height: auto; backdrop-filter: none; }
-            .brand-side { flex: none; padding: 40px 20px; text-align: center; align-items: center; background: #0f172a; }
+            body { overflow-y: auto; height: 100vh; }
+            .split-container { flex-direction: column; height: 100vh; overflow-y: auto; }
+            .brand-side { flex: none; padding: 40px 20px; text-align: center; align-items: center; }
             .brand-side h1 { font-size: 32px; }
             .brand-logo { font-size: 60px; }
-            .action-side { flex: none; padding: 40px 20px; background: #f8fafc; width: 100%; }
+            .action-side { flex: 1; padding: 40px 20px; width: 100%; justify-content: flex-start; }
         }
     </style>
 </head>
@@ -155,30 +154,47 @@
     <script>
         const socket = io();
         
+        // Live Database College Name Connector
         socket.on("update-college-name", (collegeName) => {
             document.getElementById("portal-title").innerText = collegeName;
             document.getElementById("portal-footer").innerHTML = `&copy; 2026 ${collegeName} Management`;
             document.title = `${collegeName} - Main Control Hub`;
         });
 
-        // 🔥 LIVE BACKGROUND IMAGE RECEPTOR (With Enhanced Glassmorphism Blending)
+        // 🔥 LIVE INTERACTIVE BACKGROUND RECEIVER (With Glassmorphism Blending Logic)
         socket.on("update-bg-image", (bgUrl) => {
             const brandSide = document.getElementById("brandSide");
             const actionSide = document.getElementById("actionSide");
+            const isMobile = window.innerWidth <= 768;
 
             if (bgUrl && bgUrl.trim() !== "") {
-                // Background image apply karo body par
+                // Pure Background Image Injection 
                 document.body.style.backgroundImage = `url('${bgUrl}')`;
                 
-                // Photo aane par containers ko blend karne ke liye dynamic classes style apply karo
-                brandSide.style.background = "linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%)";
-                actionSide.style.background = "rgba(255, 255, 255, 0.88)";
+                // Smart Alpha Blend Check for Mobile vs Desktop
+                if(isMobile) {
+                    brandSide.style.background = "linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.9) 100%)";
+                    actionSide.style.background = "rgba(248, 250, 252, 0.88)";
+                } else {
+                    brandSide.style.background = "linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%)";
+                    actionSide.style.background = "rgba(255, 255, 255, 0.88)";
+                }
             } else {
-                // Agar data empty hai toh standard pristine properties par restore karo
+                // If Database image string is empty, fallbacks to default theme
                 document.body.style.backgroundImage = "none";
-                brandSide.style.background = "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)";
-                actionSide.style.background = "white";
+                if(isMobile) {
+                    brandSide.style.background = "#0f172a";
+                    actionSide.style.background = "#f8fafc";
+                } else {
+                    brandSide.style.background = "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)";
+                    actionSide.style.background = "white";
+                }
             }
+        });
+
+        // Dynamic resize listener to maintain glassmorphic states properly
+        window.addEventListener('resize', () => {
+            socket.emit("get-active-buses"); // Triggers sync to reload current values safely
         });
     </script>
 </body>
