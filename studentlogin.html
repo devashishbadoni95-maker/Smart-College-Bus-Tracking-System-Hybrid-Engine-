@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Student Login - College Bus</title>
+    <title>Student Login - Tracking System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
@@ -19,7 +19,7 @@
     <div class="login-card">
         <div class="icon-circle">🚌</div>
         <h2>Student Login</h2>
-        <p style="color: #7f8c8d; font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Shivalik College Tracker</p>
+        <p id="clg-subtitle" style="color: #7f8c8d; font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Connecting to Tracker...</p>
         
         <div id="credentials-section">
             <div class="input-group">
@@ -43,8 +43,17 @@
         <p id="error" class="error-msg"></p>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
     const SESSION_DURATION = 30 * 60 * 1000; 
+    const socket = io(); // Socket initialize kiya
+
+    // 🔥 LIVE COLLEGE NAME LISTENER
+    // Server se jaise hi naya naam milega, ye automatic bina refresh kiye badal dega
+    socket.on("update-college-name", (collegeName) => {
+        document.getElementById("clg-subtitle").innerText = `${collegeName} Tracker`;
+        document.title = `Student Login - ${collegeName} Bus`;
+    });
 
     window.onload = function() {
         const isLoggedIn = localStorage.getItem("studentLogin");
@@ -88,7 +97,7 @@
                 localStorage.setItem("tempUser", u);
                 localStorage.setItem("tempEmail", email);
                 
-                // 🔥 Show OTP in Alert for testing on Render cloud
+                // Testing mode me alert dikhega
                 alert(`🔑 Project Test Mode OTP: ${data.testingOtp}`);
                 
                 document.getElementById("credentials-section").classList.add("hidden");
