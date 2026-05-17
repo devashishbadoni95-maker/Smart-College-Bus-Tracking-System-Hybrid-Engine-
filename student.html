@@ -1,45 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
+    <title>Student View - Shivalik College Tracking</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard - Live Tracking</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #1e293b; height: 100vh; display: flex; flex-direction: column; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; background: #f8fafc; height: 100vh; display: flex; flex-direction: column; }
+        #map { height: 75vh; width: 100%; display: none; position: relative; }
         
-        /* Header Dashboard Navbar */
-        header { background: #2563eb; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        header h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
-        .logout-btn:hover { background: #dc2626; }
+        .info-panel {
+            padding: 15px; background: #1e293b; color: white;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        select { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #334155; color: white; font-weight: 600; width: 100%; outline: none; }
+        .status-badge { background: #64748b; color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; font-size: 13px; text-align: center; }
+        #eta-box { font-size: 15px; text-align: center; font-weight: 500; line-height: 1.4; }
+        .logout-btn { background: #ef4444; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
+        
+        .selection-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .selection-card { background: white; padding: 40px 30px; border-radius: 20px; text-align: center; width: 85%; max-width: 360px; }
+        .leaflet-marker-icon { transition: transform 0.5s linear !important; }
 
-        /* Main Workspace Layout */
-        .dashboard-container { display: flex; flex: 1; height: calc(100vh - 56px); overflow: hidden; }
-        
-        /* Left Sidebar Control Panel */
-        .sidebar { width: 360px; background: white; border-right: 1px solid #e2e8f0; padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; z-index: 10; box-shadow: 4px 0 15px rgba(0,0,0,0.01); }
-        .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; }
-        .card h3 { font-size: 14px; color: #64748b; text-transform: uppercase; tracking: 0.5px; margin-bottom: 10px; font-weight: 700; }
-        
-        /* Select Dropdowns */
-        select { width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px; outline: none; background: white; margin-top: 5px; }
-        select:focus { border-color: #2563eb; }
-        
-        /* Telemetry Cards Grid Layout */
-        .telemetry-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
-        .telemetry-item { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
-        .telemetry-label { font-size: 12px; color: #64748b; margin-bottom: 4px; font-weight: 600; }
-        .telemetry-value { font-size: 20px; font-weight: 700; color: #0f172a; }
-        .telemetry-value.highlight { color: #2563eb; }
-        .telemetry-value.speed { color: #16a34a; }
-        .telemetry-value.eta { color: #ea580c; } 
-
-        /* Map Integration Area */
-        #map { flex: 1; height: 100%; position: relative; }
-
-        /* Top Notification Pop-up Modal (Slide Down Animation) */
+        /* 🔥 PREMIUM TOP GEOFENCING NOTIFICATION MODAL (Slide Down Animation) */
         .alert-modal { 
             position: fixed; 
             top: 20px; 
@@ -53,245 +39,243 @@
             gap: 15px; 
             padding: 16px 24px; 
             border-left: 6px solid #ea580c; 
-            z-index: 9999; 
+            z-index: 10000; 
+            color: #1e293b;
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
         }
         .alert-modal.active { transform: translateX(-50%) translateY(0); }
         .alert-icon { font-size: 28px; animation: pulse 1.5s infinite; }
-        .alert-content h4 { font-size: 16px; color: #0f172a; font-weight: 700; }
-        .alert-content p { font-size: 13px; color: #64748b; margin-top: 2px; }
-        .alert-close { background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; margin-left: 10px; }
+        .alert-content h4 { font-size: 16px; color: #0f172a; font-weight: 700; text-align: left; }
+        .alert-content p { font-size: 13px; color: #64748b; margin-top: 2px; text-align: left; }
+        .alert-close { background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; margin-left: 10px; color: #0f172a; }
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
-
-        /* Mobile Adjustments */
-        @media(max-width: 768px) {
-            .dashboard-container { flex-direction: column-reverse; }
-            .sidebar { width: 100%; height: 320px; border-right: none; border-top: 1px solid #e2e8f0; }
-        }
     </style>
 </head>
+
 <body>
 
-    <header>
-        <h1><span>🎓</span> Student Radar Terminal</h1>
-        <button class="logout-btn" onclick="logoutStudent()">Secure Exit</button>
-    </header>
-
-    <div class="dashboard-container">
-        <div class="sidebar">
-            <div class="card">
-                <h3>Select Assigned Transit Route</h3>
-                <select id="busSelect" onchange="switchBusRoute()">
-                    <option value="">-- Discover Active Vehicles --</option>
-                </select>
-            </div>
-
-            <div class="card">
-                <h3>Live Telemetry Feed</h3>
-                <div class="telemetry-grid">
-                    <div class="telemetry-item">
-                        <div class="telemetry-label">Distance to Stop</div>
-                        <div id="distanceVal" class="telemetry-value highlight">--</div>
-                    </div>
-                    <div class="telemetry-item">
-                        <div class="telemetry-label">Current Vehicle Speed</div>
-                        <div id="speedVal" class="telemetry-value speed">0 km/h</div>
-                    </div>
-                    <div class="telemetry-item">
-                        <div class="telemetry-label">Estimated Time (ETA)</div>
-                        <div id="etaVal" class="telemetry-value eta">-- min</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Route Information Ledger</h3>
-                <p id="routeStatus" style="font-size: 14px; color: #64748b; line-height: 1.5;">Select an active bus terminal route to load real-time database vectors and geo-coordinates mapping variables.</p>
-            </div>
-        </div>
-
-        <div id="map"></div>
+<div id="selection-screen" class="selection-overlay">
+    <div class="selection-card">
+        <h2>🚌 Select Your Bus</h2>
+        <p style="color: #64748b; font-size: 14px; margin-bottom: 25px;">Choose the bus you want to track</p>
+        <select id="initial-bus-select">
+            <option value="BUS-01">Bus No. 1 (Route A)</option>
+            <option value="BUS-02">Bus No. 2 (Route B)</option>
+        </select>
+        <button class="logout-btn" style="background:#2563eb; margin-top:25px;" onclick="initTracking()">Start Tracking</button>
     </div>
+</div>
 
-    <div id="geofenceAlert" class="alert-modal">
-        <div class="alert-icon">🚨</div>
-        <div class="alert-content">
-            <h4>Bus Approaching!</h4>
-            <p id="alertDetails">Your vehicle is within 500 meters of the stop zone.</p>
+<div id="ui-container" style="display: none; flex: 1; display: flex; flex-direction: column;">
+    <div class="info-panel">
+        <div>
+            <select id="stop-selector" onchange="setCustomStop()">
+                <option value="">-- Set Alert Stop --</option>
+                <option value="30.298077,78.068759">Ambiwala Gurudwara</option>
+                <option value="30.2883,78.0234">Kargi Chowk</option>
+                <option value="30.295770,78.056032">Rispana Pull</option>
+                <option value="30.278211,77.989961">Chandrabani Chowk</option>
+                <option value="30.296627,77.996641">Bansal Home</option>
+                <option value="30.286559,77.995634">Turner Road</option> 
+            </select>
         </div>
-        <button class="alert-close" onclick="silenceAlertModal()">Dismiss</button>
+        <div>
+            <div id="status" class="status-badge">Searching for Bus...</div>
+        </div>
+        <div id="eta-box">
+             🕒 <span id="bus-name-display">BUS-01</span> ETA: <span id="eta" style="color:#fbbf24; font-weight:bold;">-- mins</span>
+             <div id="speed-display" style="font-size: 13px; color: #94a3b8; margin-top: 3px;">Speed: <span id="speedVal" style="color:#16a34a; font-weight:bold;">0 km/h</span></div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
+    <div id="map" style="flex: 1;"></div>
+</div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="geofenceAlert" class="alert-modal">
+    <div class="alert-icon">🚨</div>
+    <div class="alert-content">
+        <h4>Bus Approaching!</h4>
+        <p id="alertDetails">Your vehicle is within 500 meters of the stop zone.</p>
+    </div>
+    <button class="alert-close" onclick="silenceAlertModal()">Dismiss</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+    const socket = io();
+    let map, busMarker, stopMarker, routingControl;
+    let selectedBusId = "BUS-01";
     
-    <script>
-        // Session Lock checking
-        if(localStorage.getItem("studentLogin") !== "true") { window.location.replace("studentlogin.html"); }
+    // ✅ EXACT FIXED SHIVALIK COLLEGE COORDINATES
+    const collegeLoc = [30.336050, 77.870357]; 
+    const myUsername = localStorage.getItem("studentUser") || "student01";
+    
+    let alertTriggered = false;
+    let selectedStopLat = null;
+    let selectedStopLng = null;
+    let selectedStopName = "";
 
-        const socket = io();
-        let map, busMarker, stopMarker;
-        let activeBusId = "";
-        let stopCoordinates = null; 
-        let alertTriggered = false; // Prevents ringtone audio loop spam
+    // Mixkit Standard Clear Ringtone Sound Chime integration
+    const notificationSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav");
 
-        // Standard Premium Ringtone Sound Integration
-        const notificationSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav");
-        notificationSound.loop = false;
+    function initTracking() {
+        selectedBusId = document.getElementById("initial-bus-select").value;
+        document.getElementById("bus-name-display").innerText = selectedBusId;
+        document.getElementById("selection-screen").style.display = "none";
+        
+        // Flexbox view fix handles
+        const uiContainer = document.getElementById("ui-container");
+        uiContainer.style.display = "flex";
+        document.getElementById("map").style.display = "block";
+        
+        setupMap();
+        
+        // Notify backend server to request dedicated bus telemetry room stream channel
+        socket.emit("request-bus-stream", selectedBusId);
+    }
 
-        window.onload = function() {
-            // Map Setup
-            map = L.map('map').setView([20.5937, 78.9629], 5);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
+    function setupMap() {
+        map = L.map('map').setView(collegeLoc, 12);
+        
+        // ✅ OpenStreetMap Layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // ✅ Add Shivalik College Permanent Marker Location Hub
+        const collegeIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/8074/8074788.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        });
+        L.marker(collegeLoc, {icon: collegeIcon}).addTo(map).bindPopup("<b>🏫 Shivalik College of Engineering</b><br>Selaqui, Dehradun").openPopup();
+        
+        // Initialize dynamic moving bus token marker placeholder
+        const busIcon = L.icon({ 
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', 
+            iconSize: [45, 45], iconAnchor: [22, 22]
+        });
+        busMarker = L.marker([0, 0], { icon: busIcon }).addTo(map);
+    }
+
+    // 🛰️ LIVE BROADCAST STREAM NETWORKS TRIGGER LAYER
+    // Driver se direct coordinate trigger updates catch karne wala main pipeline wrapper
+    socket.on("bus-moved", (data) => {
+        handleBusTelemetryUpdate(data);
+    });
+
+    socket.on("bus-telemetry-stream", (data) => {
+        handleBusTelemetryUpdate(data);
+    });
+
+    function handleBusTelemetryUpdate(data) {
+        if (data.busId === selectedBusId) {
+            const { lat, lng, speed } = data;
+            const currentSpeed = speed ? Math.round(speed) : 0;
+            
+            // Live Speed display interface counter update
+            document.getElementById("speedVal").innerText = `${currentSpeed} km/h`;
+            
+            if (busMarker.getLatLng().lat === 0) {
+                busMarker.setLatLng([lat, lng]);
+                map.setView([lat, lng], 14);
+            } else {
+                busMarker.setLatLng([lat, lng]);
+            }
+            
+            document.getElementById("status").innerText = selectedBusId + " is LIVE 🟢";
+            document.getElementById("status").style.background = "#22c55e";
+
+            // Leaflet OSRM Route Line Vector Processing
+            if (routingControl) map.removeControl(routingControl);
+            routingControl = L.Routing.control({
+                waypoints: [L.latLng(lat, lng), L.latLng(collegeLoc[0], collegeLoc[1])],
+                createMarker: () => null,
+                lineOptions: { styles: [{ color: '#2563eb', weight: 6, opacity: 0.8 }] },
+                addWaypoints: false, draggableWaypoints: false, show: false
+            }).on('routesfound', (e) => {
+                document.getElementById('eta').innerText = Math.round(e.routes[0].summary.totalTime / 60) + " mins";
             }).addTo(map);
 
-            // Fetch list of running vehicles
-            socket.emit("get-active-buses");
-        };
-
-        socket.on("active-buses-list", (buses) => {
-            const select = document.getElementById("busSelect");
-            select.innerHTML = '<option value="">-- Discover Active Vehicles --</option>';
-            buses.forEach(bus => {
-                let opt = document.createElement("option");
-                opt.value = bus.busId;
-                opt.innerText = `Bus Route - ${bus.busId.toUpperCase()} (${bus.college})`;
-                select.appendChild(opt);
-            });
-        });
-
-        function switchBusRoute() {
-            const select = document.getElementById("busSelect");
-            activeBusId = select.value;
-            alertTriggered = false; 
-            silenceAlertModal(); // Pure reset popup hide logic on route change
-
-            if(!activeBusId) {
-                document.getElementById("routeStatus").innerText = "Select an active route to trace tracking telemetry.";
-                return;
-            }
-
-            document.getElementById("routeStatus").innerText = `Synchronizing secure telemetry pipeline for ${activeBusId.toUpperCase()}...`;
-            socket.emit("request-bus-stream", activeBusId);
-        }
-
-        // 🛰️ LIVE CENTRAL RECEPTOR: Processes Map, Distance, Speed, ETA, and Alerts simultaneously!
-        socket.on("bus-telemetry-stream", (data) => {
-            if(data.busId !== activeBusId) return;
-
-            const busLat = data.latitude;
-            const busLng = data.longitude;
-            const busSpeed = data.speed ? Math.round(data.speed) : 0;
-
-            // FEATURE 1: Live Speedometer display update
-            document.getElementById("speedVal").innerText = `${busSpeed} km/h`;
-
-            // FEATURE 2: Render/Move Interactive Map Marker
-            if(!busMarker) {
-                const busIcon = L.icon({
-                    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', 
-                    iconSize: [40, 40],
-                    iconAnchor: [20, 20]
-                });
-                busMarker = L.marker([busLat, busLng], {icon: busIcon}).addTo(map);
-                map.setView([busLat, busLng], 15);
-            } else {
-                busMarker.setLatLng([busLat, busLng]);
-            }
-
-            // FEATURE 3: Render Designated Stop Marker Node
-            if(data.stopLatitude && data.stopLongitude) {
-                stopCoordinates = { lat: data.stopLatitude, lng: data.stopLongitude };
-                
-                if(!stopMarker) {
-                    const stopIcon = L.icon({
-                        iconUrl: 'https://cdn-icons-png.flaticon.com/512/2776/2776067.png', 
-                        iconSize: [35, 35],
-                        iconAnchor: [17, 35]
-                    });
-                    stopMarker = L.marker([data.stopLatitude, data.stopLongitude], {icon: stopIcon}).addTo(map);
-                    stopMarker.bindPopup("<b>Your Assigned Stop Point</b>").openPopup();
+            // Live 500 Meters Safety Radar Scanner Execution Check
+            if (selectedStopLat && selectedStopLng) {
+                const distanceToStop = calculateHaversineDistance(lat, lng, selectedStopLat, selectedStopLng);
+                if (distanceToStop <= 0.500 && !alertTriggered) { // 0.500 KM equals 500 Meters standard range
+                    triggerGeofenceAlert(Math.round(distanceToStop * 1000));
+                } else if (distanceToStop > 0.600) {
+                    alertTriggered = false; // Reset lock gateway once vehicle moves past safety perimeter
                 }
             }
+        }
+    }
 
-            // Calculations execution logic block
-            if(stopCoordinates) {
-                const distanceKM = calculateHaversineDistance(busLat, busLng, stopCoordinates.lat, stopCoordinates.lng);
-                
-                // FEATURE 4: Live Distance Dynamic Formatter
-                if(distanceKM < 1) {
-                    const meters = Math.round(distanceKM * 1000);
-                    document.getElementById("distanceVal").innerText = `${meters} meters`;
-                    
-                    // FEATURE 5: 500 Meters Range Guard + Ringing Core Engine Execution
-                    if(meters <= 500 && !alertTriggered) {
-                        triggerGeofenceAlert(meters);
-                    }
-                } else {
-                    document.getElementById("distanceVal").innerText = `${distanceKM.toFixed(2)} km`;
-                    if(distanceKM > 0.6) { alertTriggered = false; } // Reset lock if bus goes back outside range matrix
-                }
+    function setCustomStop() {
+        const val = document.getElementById("stop-selector").value;
+        if (!val) return;
+        
+        const selectedOption = document.getElementById("stop-selector").selectedOptions[0];
+        selectedStopName = selectedOption.text;
+        
+        // Destructure and split option string array array elements
+        const [lat, lng] = val.split(",").map(Number);
+        selectedStopLat = lat;
+        selectedStopLng = lng;
+        alertTriggered = false; // Reset custom trigger locks
 
-                // FEATURE 6: Live ETA Core algorithm execution
-                calculateETA(distanceKM, busSpeed);
-            }
+        // Render Stop Marker pin layout setup
+        if (stopMarker) map.removeLayer(stopMarker);
+        
+        const stopIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/2776/2776067.png',
+            iconSize: [35, 35],
+            iconAnchor: [17, 35]
         });
+        
+        stopMarker = L.marker([lat, lng], {icon: stopIcon}).addTo(map);
+        stopMarker.bindPopup(`<b>Your Pickup Point:</b><br>${selectedStopName}`).openPopup();
+        L.circle([lat, lng], { color: 'red', fillColor: '#f03', fillOpacity: 0.15, radius: 500 }).addTo(map);
+        
+        // Emit transaction update ledger payload packets directly to database engine
+        socket.emit('student-set-stop', { 
+            id: myUsername, 
+            stop: selectedStopName, 
+            busSelected: selectedBusId 
+        });
+        
+        document.getElementById("stop-selector").disabled = true;
+        alert(`🎯 Target stop securely locked to: ${selectedStopName}`);
+    }
 
-        // Haversine Blueprint for Precise Calculations
-        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; 
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c; 
-        }
+    // Haversine Blueprint for Precision Radar Scans
+    function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; 
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c; 
+    }
 
-        // ETA Estimation Engine Logic
-        function calculateETA(distanceKM, currentSpeed) {
-            const FALLBACK_AVG_SPEED = 25; // 25 km/h base city fallback indicator
-            let effectiveSpeed = currentSpeed > 5 ? currentSpeed : FALLBACK_AVG_SPEED;
-            
-            let timeHours = distanceKM / effectiveSpeed;
-            let totalMinutes = timeHours * 60;
+    function triggerGeofenceAlert(meters) {
+        alertTriggered = true;
+        document.getElementById("alertDetails").innerText = `Vehicle ${selectedBusId.toUpperCase()} is just ${meters} meters away from your stop (${selectedStopName})!`;
+        document.getElementById("geofenceAlert").classList.add("active");
+        
+        notificationSound.play().catch(e => console.log("Audio pipeline autoplay blocker bypass context logged:", e));
+    }
 
-            if (distanceKM <= 0.02) {
-                document.getElementById("etaVal").innerText = "Arrived";
-                return;
-            }
+    function silenceAlertModal() {
+        document.getElementById("geofenceAlert").classList.remove("active");
+    }
 
-            let mins = Math.floor(totalMinutes);
-            let secs = Math.round((totalMinutes - mins) * 60);
-
-            if (mins > 0) {
-                document.getElementById("etaVal").innerText = `${mins}m ${secs}s`;
-            } else {
-                document.getElementById("etaVal").innerText = `${secs} seconds`;
-            }
-        }
-
-        // Fire Top Modal Alert Popup View & Trigger Audio Chime Ring
-        function triggerGeofenceAlert(meters) {
-            alertTriggered = true;
-            document.getElementById("alertDetails").innerText = `Vehicle code ${activeBusId.toUpperCase()} is just ${meters} meters away from your pickup zone!`;
-            document.getElementById("geofenceAlert").classList.add("active");
-            
-            notificationSound.play().catch(e => console.log("Audio play permission block bypassed:", e));
-        }
-
-        function silenceAlertModal() {
-            document.getElementById("geofenceAlert").classList.remove("active");
-        }
-
-        function logoutStudent() {
-            localStorage.clear();
-            window.location.replace("studentlogin.html");
-        }
-    </script>
+    function logout() { localStorage.clear(); window.location.href = "studentlogin.html"; }
+</script>
 </body>
 </html>
