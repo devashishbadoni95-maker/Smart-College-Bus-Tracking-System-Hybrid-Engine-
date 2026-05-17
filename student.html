@@ -1,47 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Student View - Shivalik College Tracking</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <title>Student View - Tracking Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
     
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #f4f7f6; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; background: #f8fafc; }
         #map { height: 75vh; width: 100%; display: none; }
+        
         .info-panel {
             padding: 15px;
             background: #1e293b;
             color: white;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
+            gap: 15px;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
         }
         select {
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
-            border: none;
+            border: 1px solid #334155;
             background: #334155;
             color: white;
-            font-weight: bold;
+            font-weight: 600;
             width: 100%;
+            outline: none;
         }
-        .status-badge { background: #f59e0b; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; text-align: center; }
-        #eta-box { font-size: 14px; text-align: center; }
-        .logout-btn { background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .status-badge { background: #64748b; color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; font-size: 13px; text-align: center; transition: all 0.3s ease; }
+        #eta-box { font-size: 15px; text-align: center; font-weight: 500; }
+        .logout-btn { background: #ef4444; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        .logout-btn:hover { background: #dc2626; }
         
         .selection-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); z-index: 9999;
+            background: rgba(15, 23, 42, 0.85); z-index: 9999;
             display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px);
         }
-        .selection-card { background: white; padding: 30px; border-radius: 20px; text-align: center; width: 80%; max-width: 350px; }
-
-        /* 🔥 Bus Marker ko road par smoothly chalane ke liye CSS */
-        .leaflet-marker-icon {
-            transition: transform 1s linear !important;
-        }
+        .selection-card { background: white; padding: 40px 30px; border-radius: 20px; text-align: center; width: 85%; max-width: 360px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
+        .selection-card h2 { color: #0f172a; margin-bottom: 8px; }
     </style>
 </head>
 
@@ -49,13 +50,13 @@
 
 <div id="selection-screen" class="selection-overlay">
     <div class="selection-card">
-        <h2>🚌 Select Your Bus</h2>
-        <p style="color: #64748b;">Choose the bus you want to track</p>
+        <h2>漏 Select Your Bus</h2>
+        <p style="color: #64748b; font-size: 14px; margin-bottom: 25px;">Choose the fleet vehicle you want to intercept</p>
         <select id="initial-bus-select">
             <option value="BUS-01">Bus No. 1 (Route A)</option>
             <option value="BUS-02">Bus No. 2 (Route B)</option>
         </select>
-        <button class="logout-btn" style="background:#2563eb; width:100%; margin-top:20px;" onclick="initTracking()">Start Tracking</button>
+        <button class="logout-btn" style="background:#2563eb; width:100%; margin-top:25px; box-shadow: 0 4px 12px rgba(37,99,235,0.2);" onclick="initTracking()">Start Tracking Node</button>
     </div>
 </div>
 
@@ -73,27 +74,28 @@
             </select>
         </div>
         <div>
-            <div id="status" class="status-badge">Searching for Bus...</div>
+            <div id="status" class="status-badge">Searching System Ledger...</div>
         </div>
         <div id="eta-box">
-            🕒 <span id="bus-name-display">BUS-01</span> ETA: <span id="eta" style="color:#fbbf24; font-weight:bold;">-- mins</span>
+             room <span id="bus-name-display">BUS-01</span> ETA: <span id="eta" style="color:#fbbf24; font-weight:bold;">-- mins</span>
         </div>
-        <button class="logout-btn" onclick="logout()">Logout</button>
+        <button class="logout-btn" onclick="logout()">Terminate Session</button>
     </div>
     <div id="map"></div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
     const socket = io();
-    let map, busMarker, routingControl, userStopCoords;
+    let map, busMarker, customStopMarker, customStopCircle;
     let selectedBusId = "BUS-01";
     
-    // Shivalik College of Engineering, Selaqui (Correct Location Fixed)
-    const collegeLoc = [30.336050, 77.870357]; 
+    // 🏫 Shivalik College of Engineering, Selaqui coordinates [Longitude, Latitude] for Mapbox
+    const collegeLoc = [77.870357, 30.336050]; 
+    
+    // 🔑 APNI FREE MAPBOX ACCESS TOKEN YAHAN PASTE KARO BHAI
+    mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN';
     
     const myUsername = localStorage.getItem("studentUser") || "student01";
 
@@ -104,69 +106,167 @@
         document.getElementById("ui-container").style.display = "block";
         document.getElementById("map").style.display = "block";
         
-        setupMap();
+        setupMapbox();
     }
 
-    function setupMap() {
-        map = L.map('map').setView(collegeLoc, 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        
-        // College Marker
-        L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College (Selaqui)").openPopup();
-        
-        // 🔥 High-Quality Bus PNG Image Icon Setup
-        const busIcon = L.icon({ 
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', 
-            iconSize: [45, 45],
-            iconAnchor: [22, 22]
+    function setupMapbox() {
+        // Map initialize style me 'traffic-day-v4' layer jodi hai live traffic ke liye
+        map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/traffic-day-v4',
+            center: collegeLoc, 
+            zoom: 13,
+            pitch: 25 // Sleek angled view layout
         });
-        
-        // Initializing marker at 0,0 (hidden)
-        busMarker = L.marker([0, 0], { icon: busIcon }).addTo(map);
+
+        // Map controls navigation options layer
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        // College Destination Custom HTML Element Marker
+        const elClg = document.createElement('div');
+        elClg.style.fontSize = '30px';
+        elClg.innerHTML = '🏫';
+
+        new mapboxgl.Marker(elClg)
+            .setLngLat(collegeLoc)
+            .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML("<h3>Shivalik College Terminal</h3>"))
+            .addTo(map);
     }
 
     socket.on("bus-moved", (data) => {
         if (data.busId === selectedBusId) {
             const { lat, lng } = data;
+            const busLngLat = [lng, lat];
             
-            // 🔥 Check if bus is newly detected to prevent 0,0 jump animation
-            if (busMarker.getLatLng().lat === 0) {
-                busMarker.setLatLng([lat, lng]);
-                map.setView([lat, lng], 15);
-            } else {
-                // Smooth transition moves it now
-                busMarker.setLatLng([lat, lng]);
-            }
-            
-            document.getElementById("status").innerText = selectedBusId + " is LIVE 🟢";
+            // System dashboard badge handling update
+            document.getElementById("status").innerText = `${selectedBusId} is LIVE 🟢`;
             document.getElementById("status").style.background = "#22c55e";
 
-            // Update Routing & ETA to Shivalik College
-            if (routingControl) map.removeControl(routingControl);
-            routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(lat, lng), 
-                    L.latLng(collegeLoc[0], collegeLoc[1])
-                ],
-                createMarker: () => null,
-                addWaypoints: false,
-                draggableWaypoints: false,
-                show: false
-            }).on('routesfound', (e) => {
-                document.getElementById('eta').innerText = Math.round(e.routes[0].summary.totalTime / 60) + " mins";
-            }).addTo(map);
+            // If marker doesn't exist, build it, else slide/set map view point frame
+            if (!busMarker) {
+                const elBus = document.createElement('img');
+                elBus.src = 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png';
+                elBus.style.width = '45px';
+                elBus.style.height = '45px';
+                elBus.style.transition = 'all 0.5s linear'; // Smooth transition animation override
+
+                busMarker = new mapboxgl.Marker(elBus)
+                    .setLngLat(busLngLat)
+                    .addTo(map);
+                    
+                map.flyTo({ center: busLngLat, zoom: 14, speed: 1.2 });
+            } else {
+                busMarker.setLngLat(busLngLat);
+            }
+            
+            // 🔥 DYNAMIC TRAFFIC-AWARE ROUTE CALCULATOR
+            calculateAdaptiveRoute(busLngLat);
         }
     });
+
+    // Mapbox Driving-Traffic API handler matrix
+    async function calculateAdaptiveRoute(busCoords) {
+        try {
+            const url = `https://api.mapbox.com/api/directions/v5/mapbox/driving-traffic/${busCoords[0]},${busCoords[1]};${collegeLoc[0]},${collegeLoc[1]}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`;
+            
+            const response = await fetch(url);
+            const json = await response.json();
+            
+            if (!json.routes || json.routes.length === 0) return;
+            
+            const data = json.routes[0];
+            const routeGeometry = data.geometry.coordinates;
+
+            // Live exact ETA injection directly from traffic metrics engine
+            const durationMins = Math.round(data.duration / 60);
+            document.getElementById('eta').innerText = durationMins + " mins";
+
+            const geojson = {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                    type: 'LineString',
+                    coordinates: routeGeometry
+                }
+            };
+
+            // Canvas wrapper injection logic
+            if (map.getSource('live-route')) {
+                map.getSource('live-route').setData(geojson);
+            } else {
+                map.addSource('live-route', {
+                    type: 'geojson',
+                    data: geojson
+                });
+
+                map.addLayer({
+                    id: 'live-route-layer',
+                    type: 'line',
+                    source: 'live-route',
+                    layout: {
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    paint: {
+                        'line-color': '#2563eb',
+                        'line-width': 6,
+                        'line-opacity': 0.8
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Failed to sync structural traffic path blueprint maps:", error);
+        }
+    }
 
     function setCustomStop() {
         const val = document.getElementById("stop-selector").value;
         if (!val) return;
 
         const [lat, lng] = val.split(",").map(Number);
-        userStopCoords = { lat, lng };
+        const stopLngLat = [lng, lat];
 
-        L.marker([lat, lng]).addTo(map).bindPopup("My Stop").openPopup();
-        L.circle([lat, lng], { color: 'red', radius: 400 }).addTo(map);
+        // Clean layers parameters if updated mid-session
+        if (customStopMarker) customStopMarker.remove();
+        if (map.getLayer('stop-circle-layer')) {
+            map.removeLayer('stop-circle-layer');
+            map.removeSource('stop-circle-source');
+        }
+
+        // Drop native element marker pinning
+        const elStop = document.createElement('div');
+        elStop.fontSize = '25px';
+        elStop.innerHTML = '📍';
+
+        customStopMarker = new mapboxgl.Marker(elStop)
+            .setLngLat(stopLngLat)
+            .setPopup(new mapboxgl.Popup({ offset: 15 }).setHTML("<h4>Selected Alert Point</h4>"))
+            .addTo(map);
+
+        // Mapbox circle generation layer tool
+        map.addSource('stop-circle-source', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: stopLngLat
+                }
+            }
+        });
+
+        map.addLayer({
+            id: 'stop-circle-layer',
+            type: 'circle',
+            source: 'stop-circle-source',
+            paint: {
+                'circle-radius': 35, // Approximate coverage scale mapping
+                'circle-color': '#ef4444',
+                'circle-opacity': 0.25,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#dc2626'
+            }
+        });
 
         socket.emit('student-set-stop', { 
             id: myUsername, 
@@ -175,7 +275,7 @@
         });
         
         document.getElementById("stop-selector").disabled = true;
-        alert("Stop Locked to " + selectedBusId);
+        alert("Stop coordinates locked successfully to node: " + selectedBusId);
     }
 
     function logout() {
