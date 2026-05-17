@@ -40,11 +40,18 @@ let otpStore = {};
 
 // --- 📊 DATABASE IN MEMORY ---
 let collegeName = "Dev Badoni"; 
-let bgImagePath = ""; // 🔥 JUGAAAD: Shuruat mein ekdam khaali text string (No Default Image)
+let bgImagePath = ""; // Shuruat mein ekdam khaali text string
+
+// MOCK DATA STRUCTURE: Kuch common bus stops ke coordinate benchmarks calculations ke liye
+// Agar aap student logic mein dynamic coordinates pass kar rahe ho toh ye as a fallback safety layer kaam karega
+const STOP_BENCHMARKS = {
+    "BUS-01": { stopLatitude: 30.3400, stopLongitude: 77.8600 },
+    "BUS-02": { stopLatitude: 30.3500, stopLongitude: 77.8500 }
+};
 
 let busLocations = {
-    "BUS-01": { lat: null, lng: null, status: "Offline" },
-    "BUS-02": { lat: null, lng: null, status: "Offline" }
+    "BUS-01": { lat: null, lng: null, speed: 0, status: "Offline" },
+    "BUS-02": { lat: null, lng: null, speed: 0, status: "Offline" }
 };
 
 let studentDatabase = {};
@@ -58,7 +65,7 @@ for (let i = 1; i <= 30; i++) {
     };
 }
 
-// 🔒 Zero Hardcoded Defaults
+// Zero Hardcoded Defaults
 let driverDatabase = {};
 
 // --- 🌐 ROUTES ---
@@ -131,18 +138,18 @@ app.post("/login", (req, res) => {
 io.on("connection", (socket) => {
     console.log(`📡 Connected: ${socket.id}`);
 
-    // Connect hote hi sabhi connected users ko data bhej diya jayega
+    // Init handshakes sync
     socket.emit("update-college-name", collegeName);
-    socket.emit("update-bg-image", bgImagePath); // 🔥 JUGAAAD: Naye client ko turant current background status milegi
+    socket.emit("update-bg-image", bgImagePath); 
     socket.emit("update-all-buses", busLocations);
     socket.emit("update-admin-dashboard", Object.values(studentDatabase));
     socket.emit("update-driver-list", driverDatabase);
 
-    // 🔥 JUGAAAD: Direct Socket Listener for Background Image
+    // Direct Socket Listener for Background Image
     socket.on("admin-upload-bg", (base64Image) => {
-        bgImagePath = base64Image; // Image text string save ho gayi memory mein
+        bgImagePath = base64Image; 
         console.log("🖼️ Dynamic Background layout updated via live data stream!");
-        io.emit("update-bg-image", bgImagePath); // Saare screens par instantly apply karo
+        io.emit("update-bg-image", bgImagePath); 
     });
 
     socket.on("admin-change-college", (newName) => {
@@ -168,17 +175,64 @@ io.on("connection", (socket) => {
         }
     });
 
+    // Student specific dynamic pipeline subscription gateway
+    socket.on("request-bus-stream", (requestedBusId) => {
+        if (busLocations[requestedBusId]) {
+            const fallbackStop = STOP_BENCHMARKS[requestedBusId] || { stopLatitude: 30.336050, stopLongitude: 77.870357 };
+            socket.emit("bus-telemetry-stream", {
+                busId: requestedBusId,
+                latitude: busLocations[requestedBusId].lat,
+                longitude: busLocations[requestedBusId].lng,
+                speed: busLocations[requestedBusId].speed,
+                stopLatitude: fallbackStop.stopLatitude,
+                stopLongitude: fallbackStop.stopLongitude,
+                college: collegeName
+            });
+        }
+    });
+
+    // Active bus scanner wrapper
+    socket.on("get-active-buses", () => {
+        const runningBuses = Object.keys(busLocations).map(id => ({
+            busId: id,
+            college: collegeName
+        }));
+        socket.emit("active-buses-list", runningBuses);
+    });
+
+    // 🛰️ DYNAMIC DATA COUPLING UPGRADE: Catch driver coordinates + speed and broadcast instantly
     socket.on("bus-moved", (data) => {
-        const { busId, lat, lng } = data;
+        // Driver files se aa rahe "speed" coordinate data payload ko unpack karein
+        const { busId, lat, lng, speed } = data;
+        
         if (busId && busLocations[busId]) {
-            busLocations[busId] = { lat, lng, status: "Online" };
+            // Speed indicator variables update core record
+            busLocations[busId] = { lat, lng, speed: speed || 0, status: "Online" };
+            
+            // Fallback default coordinates framework allocation setup
+            const stopsInfo = STOP_BENCHMARKS[busId] || { stopLatitude: 30.336050, stopLongitude: 77.870357 };
+
+            // 🔥 INTEGRATED BROADCAST ROUTINE: Ek sath dashboard par map pins, speed, aur distance calculation fire karega
+            io.emit("bus-telemetry-stream", {
+                busId: busId,
+                latitude: lat,
+                longitude: lng,
+                speed: speed || 0,
+                stopLatitude: stopsInfo.stopLatitude,
+                stopLongitude: stopsInfo.stopLongitude,
+                college: collegeName
+            });
+
+            // Backwards compatibility safety layer trigger
             io.emit("bus-moved", data); 
 
+            // Python Analytical Core Thread Execution
             const pythonProcess = spawn('python3', ['analytics.py']);
             const payload = JSON.stringify({
                 bus_lat: lat,
                 bus_lng: lng,
                 bus_id: busId,
+                speed: speed || 0,
                 students: Object.values(studentDatabase).filter(s => s.busSelected === busId)
             });
 
@@ -189,7 +243,7 @@ io.on("connection", (socket) => {
                 try {
                     const analysis = JSON.parse(result.toString());
                     io.emit("eta-update", { busId, analysis });
-                } catch (e) { console.log("Python error"); }
+                } catch (e) { console.log("Python engine sync error handled."); }
             });
         }
     });
