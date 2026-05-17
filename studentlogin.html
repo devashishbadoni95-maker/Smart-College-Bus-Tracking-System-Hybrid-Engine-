@@ -2,37 +2,57 @@
 <html>
 <head>
     <title>Student Login - College Bus</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .login-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 320px; text-align: center; }
         .icon-circle { font-size: 50px; margin-bottom: 10px; }
-        .input-group input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        .input-group input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.3s; font-weight: bold; margin-top: 5px; }
         button:hover { background: #2980b9; }
-        .error-msg { color: #e74c3c; font-size: 14px; display: none; margin-top: 10px; padding: 8px; background: #fdf2f2; border-radius: 5px; }
+        .error-msg { color: #e74c3c; font-size: 14px; display: none; margin-top: 10px; padding: 8px; background: #fdf2f2; border-radius: 5px; font-weight: 500; }
+        .success-msg { color: #27ae60; font-size: 13px; display: none; margin-top: 5px; font-weight: bold; }
+        .hidden { display: none; }
+        .captcha-container { display: flex; justify-content: center; margin: 12px 0; }
     </style>
 </head>
 <body>
     <div class="login-card">
-        <div class="icon-circle">🎓</div>
+        <div class="icon-circle">🚌</div>
         <h2>Student Login</h2>
+        <p style="color: #7f8c8d; font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Shivalik College Tracker</p>
         
-        <div class="input-group">
-            <input type="text" id="u" placeholder="Username (student01)" required>
-        </div>
-        <div class="input-group">
-            <input type="password" id="p" placeholder="Password (std@123)" required>
+        <div id="credentials-section">
+            <div class="input-group">
+                <input type="text" id="u" placeholder="Student ID (student01)" required>
+            </div>
+            <div class="input-group">
+                <input type="email" id="email" placeholder="Enter Your Gmail Address" required>
+            </div>
+            
+            <div class="captcha-container">
+                <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div>
+                </div>
+
+            <button type="button" id="sendOtpBtn" onclick="requestOTP()">Send OTP to Mail</button>
         </div>
 
-        <button type="button" id="loginBtn" onclick="login()">Access Map</button>
+        <div id="otp-section" class="hidden">
+            <p class="success-msg" id="success-info" style="display: block;">📩 OTP sent successfully to your Gmail!</p>
+            <div class="input-group">
+                <input type="text" id="otp" placeholder="Enter 6-Digit OTP" maxlength="6" required>
+            </div>
+            <button type="button" id="verifyBtn" style="background: #2ecc71;" onclick="verifyOTP()">Verify & Access Map</button>
+            <button type="button" style="background: #95a5a6; font-size: 12px; padding: 6px; margin-top: 10px;" onclick="resetForm()">Back</button>
+        </div>
+
         <p id="error" class="error-msg"></p>
     </div>
 
     <script>
     const SESSION_DURATION = 30 * 60 * 1000; 
 
-    // Page load hote hi session check karein
     window.onload = function() {
         const isLoggedIn = localStorage.getItem("studentLogin");
         const loginTime = localStorage.getItem("loginTime");
@@ -47,32 +67,85 @@
         }
     };
 
-    async function login() {
+    // 1. Backend se Gmail par OTP mangwane ka function
+    async function requestOTP() {
         const u = document.getElementById("u").value.trim();
-        const p = document.getElementById("p").value.trim();
+        const email = document.getElementById("email").value.trim();
         const errorMsg = document.getElementById("error");
-        const btn = document.getElementById("loginBtn");
+        const sendBtn = document.getElementById("sendOtpBtn");
+        
+        // 🔥 Captcha response check
+        const captchaResponse = grecaptcha.getResponse();
 
-        if (!u || !p) {
-            errorMsg.style.display = "block";
-            errorMsg.innerText = "⚠️ Please fill all fields";
+        if (!u || !email) {
+            showError("⚠️ Please enter both Student ID and Gmail");
+            return;
+        }
+
+        // 🔥 Agar captcha tick nahi kiya bache ne
+        if (captchaResponse.length === 0) {
+            showError("⚠️ Please verify that you are not a robot!");
             return;
         }
 
         errorMsg.style.display = "none";
-        btn.innerText = "Checking...";
-        btn.disabled = true;
+        sendBtn.innerText = "Sending OTP...";
+        sendBtn.disabled = true;
 
         try {
-            // Render URL structure ke hisaab se fetch
-            const res = await fetch("/login", {
+            const res = await fetch("/api/send-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     username: u, 
-                    password: p, 
-                    role: "student" 
+                    email: email,
+                    captcha: captchaResponse // Backend validation ke liye response bheja
                 })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                localStorage.setItem("tempUser", u);
+                localStorage.setItem("tempEmail", email);
+                
+                document.getElementById("credentials-section").classList.add("hidden");
+                document.getElementById("otp-section").classList.remove("hidden");
+            } else {
+                sendBtn.innerText = "Send OTP to Mail";
+                sendBtn.disabled = false;
+                grecaptcha.reset(); // Fail hone par captcha reset
+                showError("❌ " + (data.message || "Failed to send OTP"));
+            }
+        } catch (err) {
+            sendBtn.innerText = "Send OTP to Mail";
+            sendBtn.disabled = false;
+            grecaptcha.reset();
+            showError("⚠️ Server Connection Error.");
+            console.error(err);
+        }
+    }
+
+    // 2. OTP Verify karke login karwane ka function
+    async function verifyOTP() {
+        const otp = document.getElementById("otp").value.trim();
+        const u = localStorage.getItem("tempUser");
+        const email = localStorage.getItem("tempEmail");
+        const verifyBtn = document.getElementById("verifyBtn");
+
+        if (!otp || otp.length !== 6) {
+            showError("⚠️ Enter a valid 6-digit OTP");
+            return;
+        }
+
+        verifyBtn.innerText = "Verifying...";
+        verifyBtn.disabled = true;
+
+        try {
+            const res = await fetch("/api/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: u, email: email, otp: otp })
             });
 
             const data = await res.json();
@@ -82,25 +155,36 @@
                 localStorage.setItem("loginTime", new Date().getTime());
                 localStorage.setItem("studentUser", u);
                 
+                localStorage.removeItem("tempUser");
+                localStorage.removeItem("tempEmail");
+                
                 window.location.href = "student.html";
             } else {
-                btn.innerText = "Access Map";
-                btn.disabled = false;
-                errorMsg.style.display = "block";
-                errorMsg.innerText = "❌ " + (data.message || "Invalid Details");
+                verifyBtn.innerText = "Verify & Access Map";
+                verifyBtn.disabled = false;
+                showError("❌ " + (data.message || "Invalid OTP"));
             }
         } catch (err) {
-            btn.innerText = "Access Map";
-            btn.disabled = false;
-            errorMsg.style.display = "block";
-            errorMsg.innerText = "⚠️ Connection Error. Check if server is running.";
-            console.error("Login Error:", err);
+            verifyBtn.innerText = "Verify & Access Map";
+            verifyBtn.disabled = false;
+            showError("⚠️ Verification failed. Server Error.");
         }
     }
 
-    document.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') { login(); }
-    });
+    function showError(text) {
+        const errorMsg = document.getElementById("error");
+        errorMsg.style.display = "block";
+        errorMsg.innerText = text;
+    }
+
+    function resetForm() {
+        document.getElementById("credentials-section").classList.remove("hidden");
+        document.getElementById("otp-section").classList.add("hidden");
+        document.getElementById("error").style.display = "none";
+        document.getElementById("sendOtpBtn").innerText = "Send OTP to Mail";
+        document.getElementById("sendOtpBtn").disabled = false;
+        grecaptcha.reset(); // Form back karne par captcha khali ho jaye
+    }
     </script>
 </body>
 </html>
