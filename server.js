@@ -39,7 +39,7 @@ function requireAdmin(req, res, next) {
 let otpStore = {};
 
 // --- 📊 DATABASE IN MEMORY ---
-let collegeName = "Shivalik College"; // 🔥 Default Name (Admin ise badal sakta hai)
+let collegeName = "Shivalik College"; 
 
 let busLocations = {
     "BUS-01": { lat: null, lng: null, status: "Offline" },
@@ -57,10 +57,9 @@ for (let i = 1; i <= 30; i++) {
     };
 }
 
-let driverDatabase = {
-    "driver01": { password: "bus@123", assignedBus: "BUS-01" },
-    "driver02": { password: "bus@456", assignedBus: "BUS-02" }
-};
+// 🔒 FIX: Hardcoded default drivers ('driver01', 'driver02') ko poori tarah hata diya hai.
+// Ab database shuruat mein khaali rahega jab tak Admin khud add nahi karta.
+let driverDatabase = {};
 
 // --- 🌐 ROUTES ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
@@ -99,7 +98,7 @@ app.post("/api/verify-otp", (req, res) => {
         delete otpStore[username]; 
         return res.json({ success: true, message: "Login Successful!" });
     } else {
-        return res.json({ success: false, message: "Incorrect OTP!" });
+        res.json({ success: false, message: "Incorrect OTP!" });
     }
 });
 
@@ -119,10 +118,11 @@ app.post("/login", (req, res) => {
 
     if (role === "driver") {
         const driver = driverDatabase[username];
+        // Dynamic verification: Sirf admin ke banaye accounts hi validation pass karenge
         if (driver && driver.password === password) {
             return res.json({ success: true, assignedBus: driver.assignedBus });
         } else {
-            return res.json({ success: false, message: "Invalid Driver ID or Password!" });
+            return res.json({ success: false, message: "Invalid Driver ID or Password! Please check with Admin." });
         }
     }
     res.json({ success: false, message: "Invalid Role" });
@@ -132,19 +132,16 @@ app.post("/login", (req, res) => {
 io.on("connection", (socket) => {
     console.log(`📡 Connected: ${socket.id}`);
 
-    // 🔥 Connect hote hi naya college name sabko mil jaye
     socket.emit("update-college-name", collegeName);
-
     socket.emit("update-all-buses", busLocations);
     socket.emit("update-admin-dashboard", Object.values(studentDatabase));
     socket.emit("update-driver-list", driverDatabase);
 
-    // 🔥 ADMIN ACTION: College Name badalna
     socket.on("admin-change-college", (newName) => {
         if (newName && newName.trim() !== "") {
             collegeName = newName.trim();
             console.log(`🏫 College Name updated to: ${collegeName}`);
-            io.emit("update-college-name", collegeName); // Sabhi connected clients ko live update
+            io.emit("update-college-name", collegeName); 
         }
     });
 
