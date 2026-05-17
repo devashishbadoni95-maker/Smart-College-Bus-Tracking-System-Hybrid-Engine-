@@ -18,9 +18,9 @@ app.use(express.json());
 app.use(express.static(__dirname)); 
 
 // --- ⚙️ GMAIL CONFIGURATION ---
-// ⚠️ TODO: Yahan apni real Gmail ID aur App Password daalna bhai!
-const EMAIL_USER = "your-college-email@gmail.com"; 
-const EMAIL_PASS = "your-16-digit-app-password"; // Gmail App Password (Normal password nahi)
+// 🔥 Fixed: Ab ye seedha Render dashboard ke variables se data uthayega, code me password likhne ki zaroorat nahi!
+const EMAIL_USER = process.env.EMAIL_USER; 
+const EMAIL_PASS = process.env.EMAIL_PASS; 
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -81,7 +81,6 @@ app.post("/api/send-otp", async (req, res) => {
     }
 
     // 🔥 Captcha Server-Side Verification
-    // Agar localhost par hain toh test key direct bypass ho jayegi, par custom key ke liye full format ready hai
     if (!captcha) {
         return res.json({ success: false, message: "Captcha verification failed!" });
     }
@@ -112,7 +111,7 @@ app.post("/api/send-otp", async (req, res) => {
         return res.json({ success: true, message: "OTP sent successfully!" });
     } catch (error) {
         console.error("Mail Error:", error);
-        return res.json({ success: false, message: "Gmail system configuration error. Check App Password." });
+        return res.json({ success: false, message: "Gmail system configuration error. Check Render Environment Variables." });
     }
 });
 
