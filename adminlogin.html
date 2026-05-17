@@ -4,8 +4,34 @@
     <title>Admin Login - Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1e293b; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 100%; max-width: 350px; text-align: center; margin: 20px; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #1e293b; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0;
+            /* 🔥 Smooth transition background badalte waqt */
+            transition: background-image 0.5s ease-in-out, background-color 0.5s ease;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        .login-card { 
+            /* 🔥 Card background ko halka sa opaque banaya taaki image ke upar uth kar dikhe */
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(8px);
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4); 
+            width: 100%; 
+            max-width: 350px; 
+            text-align: center; 
+            margin: 20px; 
+            transition: background 0.5s ease;
+        }
         h2 { color: #1e293b; margin-bottom: 20px; }
         input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; outline: none; transition: border-color 0.3s; }
         input:focus { border-color: #2563eb; }
@@ -24,7 +50,20 @@
         <p id="err" class="error"></p>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        const socket = io();
+
+        // 🔥 LIVE BACKGROUND IMAGE RECEPTOR (Instant Sync)
+        socket.on("update-bg-image", (bgUrl) => {
+            if (bgUrl && bgUrl.trim() !== "") {
+                document.body.style.backgroundImage = `url('${bgUrl}')`;
+            } else {
+                document.body.style.backgroundImage = "none";
+                document.body.style.backgroundColor = "#1e293b"; // Default color restoration
+            }
+        });
+
         async function adminLogin() {
             const u = document.getElementById("user").value.trim();
             const p = document.getElementById("pass").value.trim();
