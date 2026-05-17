@@ -166,6 +166,11 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // 🔒 AUTO-REDIRECT GUARD: Agar driver pehle se logged-in hai, toh bina wajah login screen mat dikhao
+        if (localStorage.getItem("driverLogin") === "true" && localStorage.getItem("driverUser")) {
+            window.location.replace("driver.html");
+        }
+
         const socket = io();
 
         // 🔥 LIVE COLLEGE NAME LISTENER
@@ -200,12 +205,13 @@
                 const data = await res.json();
 
                 if (data.success) {
+                    // 🔒 Real-time backend setup data storage (No hardcoded fallback here)
                     localStorage.setItem("driverLogin", "true");
                     localStorage.setItem("userRole", "driver");
                     localStorage.setItem("driverUser", u);
                     localStorage.setItem("assignedBus", data.assignedBus);
                     
-                    window.location.href = "driver.html";
+                    window.location.replace("driver.html");
                 } else {
                     btn.innerText = "Initialize Navigation System";
                     btn.disabled = false;
