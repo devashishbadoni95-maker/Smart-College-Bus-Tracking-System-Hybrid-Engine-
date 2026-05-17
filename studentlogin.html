@@ -28,12 +28,11 @@
             <div class="input-group">
                 <input type="email" id="email" placeholder="Enter Your Gmail Address" required>
             </div>
-            
-            <button type="button" id="sendOtpBtn" onclick="requestOTP()">Send OTP to Mail</button>
+            <button type="button" id="sendOtpBtn" onclick="requestOTP()">Send OTP</button>
         </div>
 
         <div id="otp-section" class="hidden">
-            <p class="success-msg" id="success-info" style="display: block;">📩 OTP sent successfully to your Gmail!</p>
+            <p class="success-msg" id="success-info" style="display: block;">📩 OTP generated successfully!</p>
             <div class="input-group">
                 <input type="text" id="otp" placeholder="Enter 6-Digit OTP" maxlength="6" required>
             </div>
@@ -61,7 +60,6 @@
         }
     };
 
-    // 1. Backend se Gmail par OTP mangwane ka function
     async function requestOTP() {
         const u = document.getElementById("u").value.trim();
         const email = document.getElementById("email").value.trim();
@@ -81,11 +79,7 @@
             const res = await fetch("/api/send-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    username: u, 
-                    email: email,
-                    captcha: "bypassed" // Backend crash na ho isliye dummy value bhej rahe hain
-                })
+                body: JSON.stringify({ username: u, email: email })
             });
 
             const data = await res.json();
@@ -94,22 +88,24 @@
                 localStorage.setItem("tempUser", u);
                 localStorage.setItem("tempEmail", email);
                 
+                // 🔥 Show OTP in Alert for testing on Render cloud
+                alert(`🔑 Project Test Mode OTP: ${data.testingOtp}`);
+                
                 document.getElementById("credentials-section").classList.add("hidden");
                 document.getElementById("otp-section").classList.remove("hidden");
             } else {
-                sendBtn.innerText = "Send OTP to Mail";
+                sendBtn.innerText = "Send OTP";
                 sendBtn.disabled = false;
                 showError("❌ " + (data.message || "Failed to send OTP"));
             }
         } catch (err) {
-            sendBtn.innerText = "Send OTP to Mail";
+            sendBtn.innerText = "Send OTP";
             sendBtn.disabled = false;
             showError("⚠️ Server Connection Error.");
             console.error(err);
         }
     }
 
-    // 2. OTP Verify karke login karwane ka function
     async function verifyOTP() {
         const otp = document.getElementById("otp").value.trim();
         const u = localStorage.getItem("tempUser");
@@ -154,19 +150,17 @@
         }
     }
 
-    // Error msg function
     function showError(text) {
         const errorMsg = document.getElementById("error");
         errorMsg.style.display = "block";
         errorMsg.innerText = text;
     }
 
-    // Reset/Back form function
     function resetForm() {
         document.getElementById("credentials-section").classList.remove("hidden");
         document.getElementById("otp-section").classList.add("hidden");
         document.getElementById("error").style.display = "none";
-        document.getElementById("sendOtpBtn").innerText = "Send OTP to Mail";
+        document.getElementById("sendOtpBtn").innerText = "Send OTP";
         document.getElementById("sendOtpBtn").disabled = false;
     }
     </script>
