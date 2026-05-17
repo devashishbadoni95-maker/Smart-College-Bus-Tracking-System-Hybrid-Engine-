@@ -70,13 +70,8 @@
     const socket = io();
     let map, busMarker, routingControl;
     let selectedBusId = "BUS-01";
-    
-    // Shivalik College of Engineering, Selaqui [Latitude, Longitude]
     const collegeLoc = [30.336050, 77.870357]; 
     const myUsername = localStorage.getItem("studentUser") || "student01";
-
-    // 🔑 AAPKI MAPTILER FREE API KEY MERGED
-    const MAPTILER_KEY = 'L9iSkXIIdHVQHD9HPMwA';
 
     function initTracking() {
         selectedBusId = document.getElementById("initial-bus-select").value;
@@ -90,8 +85,11 @@
     function setupMap() {
         map = L.map('map').setView(collegeLoc, 13);
         
-        // 🔥 MapTiler Traffic/Sport Layer Linked with your verified key
-        L.tileLayer(`https://api.maptiler.com/maps/basic-v2-sport/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`).addTo(map);
+        // ✅ OpenStreetMap Fix (Bina kisi Token/Block ke full roads load karega)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
         L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College (Selaqui)").openPopup();
         
@@ -116,7 +114,6 @@
             document.getElementById("status").innerText = selectedBusId + " is LIVE 🟢";
             document.getElementById("status").style.background = "#22c55e";
 
-            // 🔥 OSRM Dynamic Routing Matrix (Adaptive Road Pinned)
             if (routingControl) map.removeControl(routingControl);
             routingControl = L.Routing.control({
                 waypoints: [L.latLng(lat, lng), L.latLng(collegeLoc[0], collegeLoc[1])],
