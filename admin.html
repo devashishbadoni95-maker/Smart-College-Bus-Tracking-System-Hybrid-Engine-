@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Dashboard - Shivalik College</title>
+    <title>Admin Dashboard - System Control</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
@@ -11,44 +11,29 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.2); 
         }
         .container { width: 95%; max-width: 1100px; margin: 20px auto; }
-        
-        /* Dashboard Layout Sections */
         .section-title { color: #1e293b; margin: 30px 0 15px 0; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
-        
-        /* Bus Status Cards */
         .bus-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
         .bus-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #94a3b8; }
         .bus-card.online { border-left-color: #22c55e; }
         .online .dot { background: #22c55e; animation: blink 1s infinite; }
         .dot { height: 10px; width: 10px; border-radius: 50%; background: #94a3b8; display: inline-block; margin-right: 8px; }
-
-        /* Driver Management Section CSS */
         .action-btn { background: #2563eb; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s; }
         .action-btn:hover { background: #1d4ed8; }
+        .config-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s; margin-left: 10px; }
+        .config-btn:hover { background: #059669; }
         .delete-btn { background: #dc2626; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
         .delete-btn:hover { background: #991b1b; }
-
-        /* Table Wrapper */
         .table-wrapper { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 30px; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #334155; color: white; padding: 15px; text-align: left; }
         td { padding: 15px; border-bottom: 1px solid #edf2f7; font-size: 14px; }
-        
-        /* Status Tags */
         .status-tag { padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 11px; }
         .locked { background: #dcfce7; color: #15803d; }
         .open { background: #f1f5f9; color: #64748b; }
         .bus-badge { background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
-
-        /* Admin-Only Reset Button */
-        .reset-btn { 
-            background: #ef4444; color: white; border: none; padding: 8px 12px; 
-            border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;
-            box-shadow: 0 2px 5px rgba(239, 68, 68, 0.2);
-        }
+        .reset-btn { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.2); }
         .reset-btn:hover { background: #dc2626; transform: scale(1.05); }
         .logout-btn { background: #475569; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
     </style>
 </head>
@@ -56,14 +41,19 @@
 
 <div class="header">
     <div>
-        <h1 style="margin: 0; font-size: 20px;">👨‍✈️ Admin Command Center</h1>
-        <p style="margin: 0; font-size: 12px; color: #94a3b8;">Full Control: Driver Credentials, Stops & Fleet Tracking</p>
+        <h1 style="margin: 0; font-size: 20px;">👨‍✈️ <span id="clg-title">Loading...</span> - Control Center</h1>
+        <p style="margin: 0; font-size: 12px; color: #94a3b8;">System Configuration, Driver Profiles & Tracking</p>
     </div>
     <button class="logout-btn" onclick="adminLogout()">Logout</button>
 </div>
 
 <div class="container">
     
+    <div class="section-title">
+        <span>⚙️ Core System Configuration</span>
+        <button class="config-btn" onclick="updateCollegeName()">✏️ Customize College Name</button>
+    </div>
+
     <div class="section-title">📊 Live Fleet Status</div>
     <div class="bus-status-grid">
         <div id="card-BUS-01" class="bus-card">
@@ -91,9 +81,7 @@
                 </tr>
             </thead>
             <tbody id="driver-table-body">
-                <tr>
-                    <td colspan="4" style="text-align:center; color:#94a3b8; font-style:italic;">Loading authorized drivers...</td>
-                </tr>
+                <tr><td colspan="4" style="text-align:center; color:#94a3b8;">Loading authorized drivers...</td></tr>
             </tbody>
         </table>
     </div>
@@ -111,9 +99,7 @@
                 </tr>
             </thead>
             <tbody id="admin-table-body">
-                <tr>
-                    <td colspan="5" style="text-align:center; color:#94a3b8; font-style:italic;">Connecting to core system database...</td>
-                </tr>
+                <tr><td colspan="5" style="text-align:center; color:#94a3b8;">Connecting to system database...</td></tr>
             </tbody>
         </table>
     </div>
@@ -121,20 +107,16 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    // 🔥 URL Token Validation Anti-Hack Setup
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token') || localStorage.getItem("adminToken");
 
     if (!token) {
-        alert("⚠️ Access Denied! Please login from the admin portal first.");
+        alert("⚠️ Access Denied! Please login first.");
         window.location.replace("adminlogin.html");
     }
 
-    // Socket initialization with secure token authentication
     const socket = io({
-        transportOptions: {
-            polling: { extraHeaders: { 'x-admin-token': token } }
-        }
+        transportOptions: { polling: { extraHeaders: { 'x-admin-token': token } } }
     });
 
     function adminLogout() {
@@ -143,108 +125,77 @@
         window.location.replace("adminlogin.html");
     }
 
-    // Bus Live status updates
+    // 🔥 LIVE COLLEGE NAME LISTENER
+    socket.on("update-college-name", (name) => {
+        document.getElementById("clg-title").innerText = name;
+        document.title = `${name} - Admin Dashboard`;
+    });
+
+    // 🔥 Change College Name Trigger
+    function updateCollegeName() {
+        const currentName = document.getElementById("clg-title").innerText;
+        const newName = prompt("Enter New College/Organization Name:", currentName);
+        if (newName && newName.trim() !== "") {
+            socket.emit("admin-change-college", newName);
+            alert("🏫 College name updated successfully across all networks!");
+        }
+    }
+
     socket.on("bus-moved", (data) => {
         const card = document.getElementById(`card-${data.busId}`);
         if (card) {
             card.classList.add("online");
-            const statusEl = document.getElementById(`status-${data.busId}`);
-            statusEl.innerText = "LIVE";
-            statusEl.style.color = "#22c55e";
+            document.getElementById(`status-${data.busId}`).innerText = "LIVE";
+            document.getElementById(`status-${data.busId}`).style.color = "#22c55e";
         }
     });
 
-    // 🔥 LIVE DRIVER MANAGEMENT LISTENER
     socket.on("update-driver-list", (driverDatabase) => {
         const driverTableBody = document.getElementById("driver-table-body");
         driverTableBody.innerHTML = "";
-
-        const driverKeys = Object.keys(driverDatabase);
-        if (driverKeys.length === 0) {
-            driverTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#ef4444;">No drivers allowed. Add a driver profile!</td></tr>`;
-            return;
-        }
-
-        driverKeys.forEach(driverId => {
+        Object.keys(driverDatabase).forEach(driverId => {
             const driverData = driverDatabase[driverId];
-            const row = `
+            driverTableBody.innerHTML += `
                 <tr>
                     <td><strong>${driverId}</strong></td>
                     <td><span class="bus-badge">${driverData.assignedBus}</span></td>
-                    <td><code style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-weight:bold; color:#0f172a;">${driverData.password}</code></td>
-                    <td>
-                        <button class="delete-btn" onclick="deleteDriver('${driverId}')">Revoke Access</button>
-                    </td>
-                </tr>
-            `;
-            driverTableBody.innerHTML += row;
+                    <td><code>${driverData.password}</code></td>
+                    <td><button class="delete-btn" onclick="deleteDriver('${driverId}')">Revoke Access</button></td>
+                </tr>`;
         });
     });
 
-    // Student Table Updates
     socket.on("update-admin-dashboard", (students) => {
         const tableBody = document.getElementById("admin-table-body");
         tableBody.innerHTML = ""; 
-
-        if (!students || students.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No student tracking profiles active.</td></tr>`;
-            return;
-        }
-
         students.forEach(student => {
             const isLocked = student.locked || false;
-            const statusClass = isLocked ? "locked" : "open";
-            const statusText = isLocked ? "🔒 STOP LOCKED" : "⏳ CHOOSING...";
-
-            const row = `
+            tableBody.innerHTML += `
                 <tr>
                     <td><strong>${student.id.toUpperCase()}</strong></td>
                     <td><span class="bus-badge">${student.busSelected || 'N/A'}</span></td>
                     <td>${student.stop || '---'}</td>
-                    <td><span class="status-tag ${statusClass}">${statusText}</span></td>
-                    <td>
-                        ${isLocked ? 
-                            `<button class="reset-btn" onclick="resetStudent('${student.id}')">Reset Stop</button>` : 
-                            `<span style="color:#94a3b8; font-style:italic; font-size:12px;">No reset needed</span>`
-                        }
-                    </td>
-                </tr>
-            `;
-            tableBody.innerHTML += row;
+                    <td><span class="status-tag ${isLocked ? 'locked' : 'open'}">${isLocked ? '🔒 STOP LOCKED' : '⏳ CHOOSING...'}</span></td>
+                    <td>${isLocked ? `<button class="reset-btn" onclick="resetStudent('${student.id}')">Reset Stop</button>` : `<span style="color:#94a3b8; font-style:italic; font-size:12px;">No reset needed</span>`}</td>
+                </tr>`;
         });
     });
 
-    // Admin Reset Logic
     function resetStudent(studentId) {
-        if(confirm(`Admin Alert: Reset stop for ${studentId}? \nThis will allow the student to pick a new bus and stop.`)) {
-            socket.emit("admin-reset-student", studentId);
-        }
+        if(confirm(`Admin Alert: Reset stop for ${studentId}?`)) socket.emit("admin-reset-student", studentId);
     }
 
-    // 🔥 DRIVER MANAGEMENT EMIT FUNCTIONS
     function generateOrResetDriver() {
-        const driverId = prompt("Enter Driver Username ID (e.g., driver01):");
-        if (!driverId) return;
-        
-        const newPassword = prompt(`Set Security Password for ${driverId}:`);
-        if (!newPassword) return;
-
-        const busNum = prompt("Assign Fleet Route/Bus (e.g., BUS-01, BUS-02):", "BUS-01");
-        if (!busNum) return;
-
-        // Server ko direct encryption data emit karega
-        socket.emit("admin-save-driver", {
-            driverId: driverId.trim(),
-            password: newPassword.trim(),
-            assignedBus: busNum.trim().toUpperCase()
-        });
-        alert(`✅ Driver Profile [${driverId}] successfully synchronized on system database!`);
+        const driverId = prompt("Enter Driver Username ID:");
+        const newPassword = prompt(`Set Password:`);
+        const busNum = prompt("Assign Bus (BUS-01, BUS-02):", "BUS-01");
+        if (driverId && newPassword && busNum) {
+            socket.emit("admin-save-driver", { driverId: driverId.trim(), password: newPassword.trim(), assignedBus: busNum.trim().toUpperCase() });
+        }
     }
 
     function deleteDriver(driverId) {
-        if(confirm(`🚨 System Warning: Revoke login access and delete credentials for [${driverId}]?`)) {
-            socket.emit("admin-delete-driver", driverId);
-        }
+        if(confirm(`🚨 Delete credentials for [${driverId}]?`)) socket.emit("admin-delete-driver", driverId);
     }
 </script>
 </body>
