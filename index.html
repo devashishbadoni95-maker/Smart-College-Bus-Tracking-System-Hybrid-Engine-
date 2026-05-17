@@ -3,124 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shivalik Bus Tracker - Welcome</title>
+    <title>Bus Tracking System Portal</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --secondary: #64748b;
-            --driver: #f59e0b;
-            --admin: #1e293b;
-            --bg: #f8fafc;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            margin: 0;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: #f8fafc; 
+            height: 100vh; 
             display: flex;
-            justify-content: center;
-            align-items: center;
+            overflow: hidden;
+        }
+        
+        /* Full Screen Split View Layout */
+        .split-container {
+            display: flex;
+            width: 100%;
             height: 100vh;
         }
 
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        .logo {
-            font-size: 50px;
-            margin-bottom: 10px;
-        }
-
-        h1 {
-            color: var(--admin);
-            margin: 0 0 10px 0;
-            font-size: 24px;
-        }
-
-        p {
-            color: var(--secondary);
-            margin-bottom: 30px;
-        }
-
-        .btn-group {
+        /* Left Branding Area */
+        .brand-side {
+            flex: 1.2;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             display: flex;
             flex-direction: column;
-            gap: 15px;
-        }
-
-        .btn {
-            display: flex;
-            align-items: center;
             justify-content: center;
-            padding: 15px;
-            border-radius: 12px;
+            padding: 60px;
+            color: white;
+            position: relative;
+        }
+        .brand-side::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.15) 0%, transparent 50%);
+        }
+        .brand-logo { font-size: 80px; margin-bottom: 20px; }
+        .brand-side h1 { font-size: 48px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; letter-spacing: -1px; }
+        .brand-side p { color: #94a3b8; font-size: 18px; max-width: 500px; line-height: 1.6; }
+
+        /* Right Control Action Panel */
+        .action-side {
+            flex: 0.9;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.03);
+        }
+        .action-box {
+            width: 100%;
+            max-width: 400px;
+        }
+        .action-box h2 {
+            color: #0f172a;
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .action-box .desc {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 35px;
+        }
+        
+        /* Premium Extended Control Buttons */
+        .btn-portal { 
+            display: flex; 
+            align-items: center; 
+            width: 100%; 
+            padding: 16px 20px; 
+            margin: 16px 0; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.25s ease; 
             text-decoration: none;
-            font-weight: bold;
-            font-size: 18px;
-            transition: all 0.3s ease;
-            gap: 10px;
-        }
-
-        .student-btn {
-            background-color: var(--primary);
             color: white;
         }
+        .btn-portal:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        
+        .btn-student { background: #2563eb; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+        .btn-student:hover { background: #1d4ed8; }
+        .btn-driver { background: #ea580c; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2); }
+        .btn-driver:hover { background: #ca8a04; }
+        .btn-admin { background: #334155; box-shadow: 0 4px 12px rgba(51, 65, 85, 0.2); }
+        .btn-admin:hover { background: #1e293b; }
+        
+        .btn-icon { margin-right: 15px; font-size: 22px; }
+        .footer-credit { margin-top: 40px; font-size: 13px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
 
-        .driver-btn {
-            background-color: var(--driver);
-            color: white;
-        }
-
-        .admin-btn {
-            background-color: var(--admin);
-            color: white;
-        }
-
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-            filter: brightness(1.1);
-        }
-
-        .footer {
-            margin-top: 30px;
-            font-size: 12px;
-            color: #94a3b8;
+        /* Responsive Fix for mobile view screens */
+        @media (max-width: 768px) {
+            body { overflow: auto; }
+            .split-container { flex-direction: column; height: auto; }
+            .brand-side { flex: none; padding: 40px 20px; text-align: center; align-items: center; }
+            .brand-side h1 { font-size: 32px; }
+            .brand-logo { font-size: 60px; }
+            .action-side { flex: none; padding: 40px 20px; background: #f8fafc; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="logo">🚌</div>
-    <h1>Shivalik College</h1>
-    <p>Bus Tracking System Portal</p>
+    <div class="split-container">
+        <div class="brand-side">
+            <div class="brand-logo">🚌</div>
+            <h1 id="portal-title">Loading Hub...</h1>
+            <p>Welcome to the next-gen Transit Command Console. Monitor locations, route schedules, and access your terminal controls instantly.</p>
+        </div>
 
-    <div class="btn-group">
-        <a href="/studentlogin" class="btn student-btn">
-            <span>🎓</span> Student Portal
-        </a>
-
-        <a href="/driverlogin" class="btn driver-btn">
-            <span>👨‍✈️</span> Driver Portal
-        </a>
-
-        <a href="/adminlogin" class="btn admin-btn">
-            <span>🛠️</span> Admin Panel
-        </a>
+        <div class="action-side">
+            <div class="action-box">
+                <h2>System Gateway</h2>
+                <p class="desc">Please select your operational portal below to continue</p>
+                
+                <a href="/studentlogin" class="btn-portal btn-student">
+                    <span class="btn-icon">🎓</span> Student Gateway Terminal
+                </a>
+                <a href="/driverlogin" class="btn-portal btn-driver">
+                    <span class="btn-icon">👨‍✈️</span> Operator / Driver Panel
+                </a>
+                <a href="/adminlogin" class="btn-portal btn-admin">
+                    <span class="btn-icon">🛠️</span> Core Admin Infrastructure
+                </a>
+                
+                <p class="footer-credit" id="portal-footer">&copy; 2026 Fleet Operations Management</p>
+            </div>
+        </div>
     </div>
 
-    <div class="footer">
-        © 2026 Shivalik College Management
-    </div>
-</div>
-
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        socket.on("update-college-name", (collegeName) => {
+            document.getElementById("portal-title").innerText = collegeName;
+            document.getElementById("portal-footer").innerHTML = `&copy; 2026 ${collegeName} Management`;
+            document.title = `${collegeName} - Main Control Hub`;
+        });
+    </script>
 </body>
 </html>
