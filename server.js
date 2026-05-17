@@ -39,7 +39,8 @@ function requireAdmin(req, res, next) {
 let otpStore = {};
 
 // --- 📊 DATABASE IN MEMORY ---
-let collegeName = "Shivalik College"; 
+// 😎 FIX: Pehle yahan "Shivalik College" tha, ab default name aapka set kar diya hai!
+let collegeName = "Dev Badoni"; 
 
 let busLocations = {
     "BUS-01": { lat: null, lng: null, status: "Offline" },
@@ -57,8 +58,7 @@ for (let i = 1; i <= 30; i++) {
     };
 }
 
-// 🔒 FIX: Hardcoded default drivers ('driver01', 'driver02') ko poori tarah hata diya hai.
-// Ab database shuruat mein khaali rahega jab tak Admin khud add nahi karta.
+// 🔒 Zero Hardcoded Defaults: Database shuruat mein ekdam khaali rahega jab tak Admin khud add nahi karta.
 let driverDatabase = {};
 
 // --- 🌐 ROUTES ---
@@ -118,7 +118,6 @@ app.post("/login", (req, res) => {
 
     if (role === "driver") {
         const driver = driverDatabase[username];
-        // Dynamic verification: Sirf admin ke banaye accounts hi validation pass karenge
         if (driver && driver.password === password) {
             return res.json({ success: true, assignedBus: driver.assignedBus });
         } else {
@@ -132,6 +131,7 @@ app.post("/login", (req, res) => {
 io.on("connection", (socket) => {
     console.log(`📡 Connected: ${socket.id}`);
 
+    // 🔥 Connect hote hi "Dev Badoni" name sabhi connected users ke UI par bhej diya jayega
     socket.emit("update-college-name", collegeName);
     socket.emit("update-all-buses", busLocations);
     socket.emit("update-admin-dashboard", Object.values(studentDatabase));
