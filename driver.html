@@ -1,24 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Driver Panel - Live Tracking</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <title>Driver Panel - Live Transit Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
     
     <style>
-        body { text-align: center; font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 0; }
-        #map { height: 300px; width: 100%; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
-        .login-card { max-width: 450px; margin: 10px auto; padding: 20px; border-radius: 20px; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .icon-circle { font-size: 40px; margin-bottom: 5px; }
-        .status-container { margin: 15px auto; padding: 15px; background: #f8f9fa; border-radius: 15px; border: 1px solid #eee; }
-        .btn-start { background: #27ae60; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3); }
-        .btn-stop { background: #e74c3c; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; display: none; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3); }
-        #live-status { font-weight: bold; color: #2c3e50; margin: 5px 0; }
-        .pulse { height: 12px; width: 12px; background-color: #27ae60; border-radius: 50%; display: inline-block; margin-right: 10px; animation: blink 1s infinite; }
+        body { text-align: center; font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; margin: 0; padding: 0; }
+        #map { height: 40vh; width: 100%; border-bottom: 2px solid #e2e8f0; }
+        .login-card { max-width: 450px; margin: 15px auto; padding: 25px; border-radius: 20px; background: white; box-shadow: 0 10px 30px rgba(15,23,42,0.08); box-sizing: border-box; }
+        .icon-circle { font-size: 45px; margin-bottom: 5px; }
+        .status-container { margin: 15px auto; padding: 15px; background: #f1f5f9; border-radius: 15px; border: 1px solid #e2e8f0; }
+        .btn-start { background: #16a34a; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3); transition: background 0.2s; }
+        .btn-start:hover { background: #15803d; }
+        .btn-stop { background: #dc2626; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; display: none; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3); transition: background 0.2s; }
+        .btn-stop:hover { background: #b91c1c; }
+        #live-status { font-weight: bold; color: #334155; margin: 5px 0; font-size: 16px; }
+        .pulse { height: 12px; width: 12px; background-color: #16a34a; border-radius: 50%; display: inline-block; margin-right: 10px; animation: blink 1s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        .logout-btn { background: #95a5a6; color: white; margin-top: 15px; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 14px; }
-        #error-log { color: #e74c3c; font-size: 13px; margin-top: 10px; display: none; background: #fdf2f2; padding: 10px; border-radius: 5px; }
-        .bus-badge { background: #f59e0b; color: white; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 10px; display: inline-block; }
+        .logout-btn { background: #64748b; color: white; margin-top: 15px; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 14px; font-weight: 600; transition: background 0.2s; }
+        .logout-btn:hover { background: #475569; }
+        #error-log { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; background: #fef2f2; padding: 10px; border-radius: 8px; border-left: 4px solid #dc2626; }
+        .bus-badge { background: #ea580c; color: white; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 12px; display: inline-block; box-shadow: 0 2px 8px rgba(234,88,12,0.2); }
     </style>
 </head>
 
@@ -26,39 +30,40 @@
     <div id="map"></div>
 
     <div class="login-card">
-        <div class="bus-badge" id="bus-id-display">Detecting Bus...</div>
-        <div class="icon-circle">🚌</div>
+        <div class="bus-badge" id="bus-id-display">Detecting Fleet Node...</div>
+        <div class="icon-circle">👨‍✈️</div>
         <h2>Driver Control Panel</h2>
         
         <div class="status-container">
-            <p id="live-status">Connecting to Server...</p>
-            <div id="active-indicator" style="display:none;"><span class="pulse"></span>Sharing Live Location & Route</div>
+            <p id="live-status">Connecting to Core Ledger...</p>
+            <div id="active-indicator" style="display:none;"><span class="pulse"></span>Streaming Live Traffic Route</div>
             <p id="error-log"></p>
         </div>
 
         <button id="startBtn" class="btn-start" onclick="toggleTracking(true)">START TRIP</button>
         <button id="stopBtn" class="btn-stop" onclick="toggleTracking(false)">END TRIP</button>
         
-        <div id="debug-info" style="font-size: 12px; color: #7f8c8d; margin-top: 10px;">
-            Coords: <span id="last-coords">None</span>
+        <div id="debug-info" style="font-size: 12px; color: #64748b; margin-top: 12px;">
+            Telemetry Coords: <span id="last-coords" style="font-family: monospace; font-weight: bold;">None</span>
         </div>
 
         <button class="logout-btn" onclick="logout()">Logout Account</button>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 
     <script>
-    // 1. Initial Config
-    // Shivalik College of Engineering, Selaqui, Dehradun (Correct Coordinates)
-    const collegeLoc = [30.336050, 77.870357]; 
-    let map, driverMarker, routingControl, watchId = null;
+    // 1. Core Structural Metrics
+    // Shivalik College of Engineering, Selaqui [Longitude, Latitude]
+    const collegeLoc = [77.870357, 30.336050]; 
+    let map, driverMarker, watchId = null;
     const socket = io();
 
-    // Determine Bus ID from Login
-    const loggedUser = localStorage.getItem("driverUsername") || "driver01";
+    // 🔑 APNI FREE MAPBOX ACCESS TOKEN YAHAN PASTE KARO BHAI
+    mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN';
+
+    // Session configurations
+    const loggedUser = localStorage.getItem("driverUser") || "driver01";
     const busId = loggedUser === "driver02" ? "BUS-02" : "BUS-01";
     document.getElementById("bus-id-display").innerText = "Assigned: " + busId;
 
@@ -66,19 +71,38 @@
         window.location.replace("driverlogin.html");
     }
 
-    // Initialize Map - Default view near Shivalik College
-    map = L.map('map').setView(collegeLoc, 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-    // College Marker (Target)
-    L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College (Target)").openPopup();
-
-    socket.on('connect', () => {
-        document.getElementById("live-status").innerText = "Connected & Ready ✅";
-        document.getElementById("live-status").style.color = "#27ae60";
+    // Initialize Mapbox with Dynamic Traffic Template Layout
+    map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/traffic-day-v4', // 🔥 Real-time traffic overlay
+        center: collegeLoc,
+        zoom: 12,
+        pitch: 20
     });
 
-    // 2. Tracking & Routing Logic
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    // Mount Static College Marker Pinned Node
+    const elClg = document.createElement('div');
+    elClg.style.fontSize = '28px';
+    elClg.innerHTML = '🏫';
+    
+    new mapboxgl.Marker(elClg)
+        .setLngLat(collegeLoc)
+        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML("<h3>Shivalik College HQ</h3>"))
+        .addTo(map);
+
+    socket.on('connect', () => {
+        document.getElementById("live-status").innerText = "Console Synced & Ready ✅";
+        document.getElementById("live-status").style.color = "#16a34a";
+    });
+
+    // 🔥 LIVE COLLEGE NAME REAL-TIME RESET OVERRIDE LISTENER
+    socket.on("update-college-name", (collegeName) => {
+        document.title = `Driver Console - ${collegeName}`;
+    });
+
+    // 2. Telemetry Processing & Streaming Core Engine
     function toggleTracking(status) {
         const startBtn = document.getElementById("startBtn");
         const stopBtn = document.getElementById("stopBtn");
@@ -86,56 +110,103 @@
 
         if (status) {
             if ("geolocation" in navigator) {
-                liveStatus.innerText = "Finding GPS...";
+                liveStatus.innerText = "Locking GPS Coordinates...";
                 startBtn.style.display = "none";
                 stopBtn.style.display = "block";
 
                 watchId = navigator.geolocation.watchPosition(pos => {
                     const { latitude, longitude } = pos.coords;
-                    const currentPos = [latitude, longitude];
+                    const busLngLat = [longitude, latitude];
 
-                    // Update UI
-                    liveStatus.innerText = "Trip is LIVE 🛰️";
+                    // Interface metric bindings
+                    liveStatus.innerText = "Trip telemetry streaming LIVE 🛰️";
                     document.getElementById("last-coords").innerText = latitude.toFixed(5) + ", " + longitude.toFixed(5);
                     document.getElementById("active-indicator").style.display = "block";
 
-                    // Update Map Marker
+                    // Update or Construct Driver Bus Node Position
                     if (!driverMarker) {
-                        driverMarker = L.marker(currentPos).addTo(map);
-                        map.setView(currentPos, 15);
+                        const elBus = document.createElement('img');
+                        elBus.src = 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png';
+                        elBus.style.width = '42px';
+                        elBus.style.height = '42px';
+
+                        driverMarker = new mapboxgl.Marker(elBus)
+                            .setLngLat(busLngLat)
+                            .addTo(map);
+                            
+                        map.flyTo({ center: busLngLat, zoom: 14 });
                     } else {
-                        driverMarker.setLatLng(currentPos);
+                        driverMarker.setLngLat(busLngLat);
                     }
 
-                    // Update Route Line to SHIVALIK COLLEGE
-                    if (routingControl) map.removeControl(routingControl);
-                    routingControl = L.Routing.control({
-                        waypoints: [
-                            L.latLng(latitude, longitude),
-                            L.latLng(collegeLoc[0], collegeLoc[1])
-                        ],
-                        createMarker: function() { return null; },
-                        lineOptions: { styles: [{ color: '#2563eb', weight: 5 }] },
-                        addWaypoints: false,
-                        draggableWaypoints: false,
-                        show: false
-                    }).addTo(map);
+                    // 🔥 Execute Dynamic Path Analysis Vector
+                    streamLiveAdaptivePath(busLngLat);
 
-                    // Send to Server
+                    // Transmit data packets to backend node
                     socket.emit("bus-moved", { busId, lat: latitude, lng: longitude });
 
                 }, err => {
                     document.getElementById("error-log").style.display = "block";
-                    document.getElementById("error-log").innerText = "GPS Error: " + err.message;
-                }, { enableHighAccuracy: true });
+                    document.getElementById("error-log").innerText = "GPS Exception: " + err.message;
+                }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
             }
         } else {
             if (watchId) navigator.geolocation.clearWatch(watchId);
             startBtn.style.display = "block";
             stopBtn.style.display = "none";
-            liveStatus.innerText = "Trip Ended Successfully";
+            liveStatus.innerText = "Trip Concluded Successfully";
             document.getElementById("active-indicator").style.display = "none";
-            if (routingControl) map.removeControl(routingControl);
+            
+            // Wipe the route layers clean upon closing trip session
+            if (map.getLayer('driver-route-layer')) {
+                map.removeLayer('driver-route-layer');
+                map.removeSource('driver-route');
+            }
+        }
+    }
+
+    // Dynamic Traffic-Route Calculations Core Layer Fetch
+    async function streamLiveAdaptivePath(currentCoords) {
+        try {
+            const url = `https://api.mapbox.com/api/directions/v5/mapbox/driving-traffic/${currentCoords[0]},${currentCoords[1]};${collegeLoc[0]},${collegeLoc[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`;
+            
+            const response = await fetch(url);
+            const json = await response.json();
+            
+            if (!json.routes || json.routes.length === 0) return;
+            const routeGeometry = json.routes[0].geometry.coordinates;
+
+            const geojson = {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                    type: 'LineString',
+                    coordinates: routeGeometry
+                }
+            };
+
+            if (map.getSource('driver-route')) {
+                map.getSource('driver-route').setData(geojson);
+            } else {
+                map.addSource('driver-route', {
+                    type: 'geojson',
+                    data: geojson
+                });
+
+                map.addLayer({
+                    id: 'driver-route-layer',
+                    type: 'line',
+                    source: 'driver-route',
+                    layout: { 'line-join': 'round', 'line-cap': 'round' },
+                    paint: {
+                        'line-color': '#ea580c', // Operator dynamic pipeline (Orange)
+                        'line-width': 6,
+                        'line-opacity': 0.85
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Routing telemetry pipeline failed:", e);
         }
     }
 
