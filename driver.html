@@ -12,27 +12,43 @@
         .login-card { max-width: 450px; margin: 15px auto; padding: 25px; border-radius: 20px; background: white; box-shadow: 0 10px 30px rgba(15,23,42,0.08); box-sizing: border-box; }
         .icon-circle { font-size: 45px; margin-bottom: 5px; }
         .status-container { margin: 15px auto; padding: 15px; background: #f1f5f9; border-radius: 15px; border: 1px solid #e2e8f0; }
-        .btn-start { background: #16a34a; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3); }
-        .btn-stop { background: #dc2626; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; display: none; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3); }
+        .btn-start { background: #16a34a; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3); transition: 0.2s; }
+        .btn-start:hover { background: #15803d; }
+        .btn-stop { background: #dc2626; color: white; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; display: none; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3); transition: 0.2s; }
+        .btn-stop:hover { background: #b91c1c; }
         #live-status { font-weight: bold; color: #334155; margin: 5px 0; font-size: 16px; }
         .pulse { height: 12px; width: 12px; background-color: #16a34a; border-radius: 50%; display: inline-block; margin-right: 10px; animation: blink 1s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        .logout-btn { background: #64748b; color: white; margin-top: 15px; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 14px; font-weight: 600; }
-        #error-log { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; background: #fef2f2; padding: 10px; border-radius: 8px; border-left: 4px solid #dc2626; }
-        .bus-badge { background: #ea580c; color: white; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 12px; display: inline-block; }
+        .logout-btn { background: #64748b; color: white; margin-top: 15px; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 14px; font-weight: 600; transition: 0.2s; }
+        .logout-btn:hover { background: #475569; }
+        #error-log { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; background: #fef2f2; padding: 10px; border-radius: 8px; border-left: 4px solid #dc2626; text-align: left; }
+        .bus-badge { background: #ea580c; color: white; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 12px; display: inline-block; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.2); }
     </style>
 </head>
 
 <body>
+    <script>
+        const isDriverLoggedIn = localStorage.getItem("driverLogin");
+        const sessionRole = localStorage.getItem("userRole");
+        const currentDriver = localStorage.getItem("driverUser");
+        const currentBus = localStorage.getItem("assignedBus");
+
+        if (isDriverLoggedIn !== "true" || sessionRole !== "driver" || !currentDriver || !currentBus) {
+            alert("🚨 Access Denied! Please login through Driver Terminal.");
+            localStorage.clear();
+            window.location.replace("driverlogin.html");
+        }
+    </script>
+
     <div id="map"></div>
 
     <div class="login-card">
-        <div class="bus-badge" id="bus-id-display">Detecting Bus...</div>
+        <div class="bus-badge" id="bus-id-display">Assigned: Fetching Allotment...</div>
         <div class="icon-circle">🚌</div>
         <h2>Driver Control Panel</h2>
         
         <div class="status-container">
-            <p id="live-status">Connecting to Server...</p>
+            <p id="live-status">Connecting to Server Sync...</p>
             <div id="active-indicator" style="display:none;"><span class="pulse"></span>Sharing Live Location & Route</div>
             <p id="error-log"></p>
         </div>
@@ -53,41 +69,52 @@
 
     <script>
     const collegeLoc = [30.336050, 77.870357]; 
-    let map, driverMarker, routingControl, watchId = null;
+    let map, driverMarker, targetMarker, routingControl, watchId = null;
     const socket = io();
 
-    const loggedUser = localStorage.getItem("driverUser") || "driver01";
-    const busId = loggedUser === "driver02" ? "BUS-02" : "BUS-01";
+    // ⚡ Real-Time Dynamic Allocation: Hardcoding poori tarah khatam
+    const loggedUser = localStorage.getItem("driverUser");
+    const busId = localStorage.getItem("assignedBus");
     document.getElementById("bus-id-display").innerText = "Assigned: " + busId;
 
-    if (localStorage.getItem("driverLogin") !== "true") { window.location.replace("driverlogin.html"); }
-
-    // Map Initialize
+    // Map Initialization
     map = L.map('map').setView(collegeLoc, 13);
     
-    // ✅ OpenStreetMap Layer Add (No Token Needed)
+    // OpenStreetMap Layer Add
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College (Target)").openPopup();
+    // Initial Marker (Iska popup text dynamic change hoga socket se)
+    targetMarker = L.marker(collegeLoc).addTo(map).bindPopup("🏫 Hub Target");
 
+    // Dynamic Server State Event Listeners
     socket.on('connect', () => {
         document.getElementById("live-status").innerText = "Connected & Ready ✅";
         document.getElementById("live-status").style.color = "#16a34a";
+    });
+
+    // 🏫 Live Target Header Name System (Dev Badoni / Admin Name Override Sync)
+    socket.on("update-college-name", (name) => {
+        document.title = `${name} - Driver Control`;
+        if (targetMarker) {
+            targetMarker.setPopupContent(`🏫 ${name} (Target)`).openPopup();
+        }
     });
 
     function toggleTracking(status) {
         const startBtn = document.getElementById("startBtn");
         const stopBtn = document.getElementById("stopBtn");
         const liveStatus = document.getElementById("live-status");
+        const errLog = document.getElementById("error-log");
 
         if (status) {
             if ("geolocation" in navigator) {
-                liveStatus.innerText = "Finding GPS...";
+                liveStatus.innerText = "Finding GPS Matrix...";
                 startBtn.style.display = "none";
                 stopBtn.style.display = "block";
+                errLog.style.display = "none";
 
                 watchId = navigator.geolocation.watchPosition(pos => {
                     const { latitude, longitude } = pos.coords;
@@ -112,27 +139,33 @@
                         addWaypoints: false, draggableWaypoints: false, show: false
                     }).addTo(map);
 
+                    // Server tracking stream logic
                     socket.emit("bus-moved", { busId, lat: latitude, lng: longitude });
 
                 }, err => {
-                    document.getElementById("error-log").style.display = "block";
-                    document.getElementById("error-log").innerText = "GPS Error: " + err.message;
-                }, { enableHighAccuracy: true });
+                    errLog.style.display = "block";
+                    errLog.innerText = "⚠️ GPS Sharing Failed: " + err.message + ". Please verify device location services are enabled.";
+                    toggleTracking(false); // Reset UI states immediately on physical sensor error
+                }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+            } else {
+                alert("🔴 Telemetry Error: Geolocation sensor not supported by browser architecture.");
             }
         } else {
             if (watchId) navigator.geolocation.clearWatch(watchId);
+            watchId = null;
             startBtn.style.display = "block";
             stopBtn.style.display = "none";
             liveStatus.innerText = "Trip Ended Successfully";
             document.getElementById("active-indicator").style.display = "none";
             if (routingControl) map.removeControl(routingControl);
+            if (driverMarker) { map.removeLayer(driverMarker); driverMarker = null; }
         }
     }
 
     function logout() {
         if (watchId) navigator.geolocation.clearWatch(watchId);
         localStorage.clear();
-        window.location.href = "driverlogin.html";
+        window.location.replace("driverlogin.html");
     }
     </script>
 </body>
