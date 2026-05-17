@@ -17,22 +17,16 @@ app.use(express.json());
 app.use(express.static(__dirname)); 
 
 // --- 🔐 SECURE ADMIN CONFIGURATION ---
-// Ab admin ka password code me nahi, Render dashboard me secure rahega
 const ADMIN_USER = process.env.ADMIN_USER || "admin01";
-const ADMIN_PASS = process.env.ADMIN_PASS || "admin@123"; // Fallback agar env na mile
+const ADMIN_PASS = process.env.ADMIN_PASS || "admin@123"; 
 
-// Memory me active sessions track karne ke liye
 let activeAdminSessions = new Set();
 
-// Middleware: Jo check karega ki request karne wala asli Admin hai ya nahi
 function requireAdmin(req, res, next) {
-    // Ye check karega ki kya browser ke paas valid admin session token hai
     const adminToken = req.query.token || req.headers['x-admin-token'];
-    
     if (activeAdminSessions.has(adminToken)) {
-        next(); // Agar token sahi hai toh page kholne do
+        next();
     } else {
-        // Agar koi seedha URL kholne ki koshish kare toh login page par fek do
         res.status(401).send(`
             <script>
                 alert('⚠️ Unauthorized Access! Please login first.');
@@ -45,22 +39,8 @@ function requireAdmin(req, res, next) {
 // Memory me save rakhne ke liye ki kis bache ka kya OTP hai
 let otpStore = {};
 
-// --- 🌐 ROUTES ---
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.get('/studentlogin', (req, res) => res.sendFile(path.join(__dirname, 'studentlogin.html')));
-app.get('/driverlogin', (req, res) => res.sendFile(path.join(__dirname, 'driverlogin.html')));
-app.get('/adminlogin', (req, res) => res.sendFile(path.join(__dirname, 'adminlogin.html')));
-
-// 🔥 SECURED ROUTE: Ab bina login kiye koi bhi admin.html nahi khol payega
-app.get('/admin.html', requireAdmin, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-
-app.get('/student.html', (req, res) => res.sendFile(path.join(__dirname, 'student.html')));
-app.get('/driver.html', (req, res) => res.sendFile(path.join(__dirname, 'driver.html')));
-
 // --- 📊 DATABASE IN MEMORY ---
+
 let busLocations = {
     "BUS-01": { lat: null, lng: null, status: "Offline" },
     "BUS-02": { lat: null, lng: null, status: "Offline" }
@@ -76,6 +56,23 @@ for (let i = 1; i <= 30; i++) {
         locked: false 
     };
 }
+
+// 🔥 NEW: Dynamic Driver Database (Ab Admin ise control karega)
+// Shuruat me 2 default drivers de rahe hain, admin inka password badal ya inhe delete kar sakta hai
+let driverDatabase = {
+    "driver01": { password: "bus@123", assignedBus: "BUS-01" },
+    "driver02": { password: "bus@456", assignedBus: "BUS-02" }
+};
+
+// --- 🌐 ROUTES ---
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/studentlogin', (req, res) => res.sendFile(path.join(__dirname, 'studentlogin.html')));
+app.get('/driverlogin', (req, res) => res.sendFile(path.join(__dirname, 'driverlogin.html')));
+app.get('/adminlogin', (req, res) => res.sendFile(path.join(__dirname, 'adminlogin.html')));
+
+app.get('/admin.html', requireAdmin, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/student.html', (req, res) => res.sendFile(path.join(__dirname, 'student.html')));
+app.get('/driver.html', (req, res) => res.sendFile(path.join(__dirname, 'driver.html')));
 
 // --- 🔐 OTP API ---
 app.post("/api/send-otp", async (req, res) => {
@@ -108,39 +105,67 @@ app.post("/api/verify-otp", (req, res) => {
     }
 });
 
-// --- 🔐 UPDATED LOGIN API FOR ADMIN & DRIVER ---
+// --- 🔐 LOGIN API (ADMIN & DYNAMIC DRIVER) ---
 app.post("/login", (req, res) => {
     const { username, password, role } = req.body;
     
-    // 🔥 Secure Admin Login Logic
+    // Admin Login
     if (role === "admin") {
         if (username === ADMIN_USER && password === ADMIN_PASS) {
-            // Ek unique secure token generate kiya
             const secureToken = "token_" + Math.random().toString(36).substr(2) + Date.now().toString(36);
-            activeAdminSessions.add(secureToken); // Token ko memory me save kiya
-
-            // Frontend ko token bhej rahe hain
+            activeAdminSessions.add(secureToken);
             return res.json({ success: true, token: secureToken });
         } else {
             return res.json({ success: false, message: "Wrong Admin Credentials!" });
         }
     }
 
-    // Driver Login
-    const validDrivers = { "driver01": "bus@123", "driver02": "bus@456" };
-    if (role === "driver" && validDrivers[username] === password) {
-        return res.json({ success: true });
+    // 🔥 Dynamic Driver Login (Ab ye driverDatabase se check karega)
+    if (role === "driver") {
+        const driver = driverDatabase[username];
+        if (driver && driver.password === password) {
+            return res.json({ success: true, assignedBus: driver.assignedBus });
+        } else {
+            return res.json({ success: false, message: "Invalid Driver ID or Password! Check with Admin." });
+        }
     }
 
-    res.json({ success: false, message: "Invalid username or password" });
+    res.json({ success: false, message: "Invalid Role" });
 });
 
 // --- 📡 SOCKET.IO LOGIC ---
 io.on("connection", (socket) => {
     console.log(`📡 Connected: ${socket.id}`);
+
+    // Admin ko drivers ki list aur buses ki list live bhejna
     socket.emit("update-all-buses", busLocations);
     socket.emit("update-admin-dashboard", Object.values(studentDatabase));
+    socket.emit("update-driver-list", driverDatabase); // Admin page par list dikhane ke liye
 
+    // 🔥 ADMIN ACTION: Generate/Add/Update Driver Password
+    socket.on("admin-save-driver", (data) => {
+        const { driverId, password, assignedBus } = data;
+        if (driverId && password) {
+            // Agar driver pehle se hai toh password update hoga, nahi toh naya banega
+            driverDatabase[driverId] = {
+                password: password,
+                assignedBus: assignedBus || "BUS-01"
+            };
+            console.log(`👤 Admin updated driver: ${driverId}`);
+            io.emit("update-driver-list", driverDatabase); // Sabhi admins ko live update
+        }
+    });
+
+    // 🔥 ADMIN ACTION: Delete/Remove Driver
+    socket.on("admin-delete-driver", (driverId) => {
+        if (driverDatabase[driverId]) {
+            delete driverDatabase[driverId];
+            console.log(`❌ Admin removed driver: ${driverId}`);
+            io.emit("update-driver-list", driverDatabase);
+        }
+    });
+
+    // Bus Tracking Logic
     socket.on("bus-moved", (data) => {
         const { busId, lat, lng } = data;
         if (busId && busLocations[busId]) {
