@@ -151,34 +151,28 @@
         }
     }
 
-    // 🔥 DYNAMIC BACKGROUND UPLOAD HANDLER
-    async function uploadBackground() {
+    // 🔥 DYNAMIC BACKGROUND UPLOAD HANDLER (Pure Socket + Base64 Stream)
+    function uploadBackground() {
         const fileInput = document.getElementById("bgFileInput");
         if (fileInput.files.length === 0) {
             alert("⚠️ Please select an image file first before uploading!");
             return;
         }
 
-        const formData = new FormData();
-        formData.append("bgImage", fileInput.files[0]);
+        const file = fileInput.files[0];
+        const reader = new FileReader();
 
-        try {
-            // Securely transfer image file with admin security token injected
-            const res = await fetch(`/api/upload-bg?token=${token}`, {
-                method: "POST",
-                body: formData
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert("🎉 Background Image uploaded and applied live across index & login hubs!");
-                fileInput.value = ""; // Form input slot clear karo
-            } else {
-                alert("❌ Upload process failed: " + data.message);
-            }
-        } catch (err) {
-            alert("⚠️ Network connectivity error while transferring assets to Cloud server.");
-            console.error(err);
+        reader.onloadend = function() {
+            const base64String = reader.result; // Puri image text string mein convert ho chuki hai
+            
+            // Direct Socket connection se data push karo server par
+            socket.emit("admin-upload-bg", base64String);
+            
+            alert("🎉 Background Image uploaded and applied live across index & login hubs!");
+            fileInput.value = ""; // File selector clear karo
         }
+
+        reader.readAsDataURL(file); // Execution starter
     }
 
     // 🔥 Reactive Fleet Status Sync
