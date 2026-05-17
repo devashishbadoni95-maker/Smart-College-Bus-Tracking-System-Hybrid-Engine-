@@ -56,18 +56,20 @@
     let map, driverMarker, routingControl, watchId = null;
     const socket = io();
 
-    // 🔑 AAPKI MAPTILER FREE API KEY YAHAN INJECTED HAI
-    const MAPTILER_KEY = 'L9iSkXIIdHVQHD9HPMwA';
-
     const loggedUser = localStorage.getItem("driverUser") || "driver01";
     const busId = loggedUser === "driver02" ? "BUS-02" : "BUS-01";
     document.getElementById("bus-id-display").innerText = "Assigned: " + busId;
 
     if (localStorage.getItem("driverLogin") !== "true") { window.location.replace("driverlogin.html"); }
 
-    // Map Initialize with MapTiler Traffic/Sport view style
+    // Map Initialize
     map = L.map('map').setView(collegeLoc, 13);
-    L.tileLayer(`https://api.maptiler.com/maps/basic-v2-sport/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`).addTo(map);
+    
+    // ✅ OpenStreetMap Layer Add (No Token Needed)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 
     L.marker(collegeLoc).addTo(map).bindPopup("🏫 Shivalik College (Target)").openPopup();
 
@@ -102,7 +104,6 @@
                         driverMarker.setLatLng(currentPos);
                     }
 
-                    // Dynamic path rendering based on current road location
                     if (routingControl) map.removeControl(routingControl);
                     routingControl = L.Routing.control({
                         waypoints: [L.latLng(latitude, longitude), L.latLng(collegeLoc[0], collegeLoc[1])],
