@@ -13,119 +13,48 @@
             display: flex;
             overflow: hidden;
         }
-
-        /* Split View Setup */
-        .login-split-container {
-            display: flex;
-            width: 100%;
-            height: 100vh;
-        }
-
-        /* Branding Panel Left Side (Driver/Operator Theme - Orange/Amber gradient) */
+        .login-split-container { display: flex; width: 100%; height: 100vh; }
         .branding-panel {
             flex: 1.2;
             background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 60px;
-            color: white;
-            position: relative;
+            display: flex; flex-direction: column; justify-content: center;
+            padding: 60px; color: white; position: relative;
         }
         .branding-panel::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.12) 0%, transparent 60%);
         }
         .panel-icon { font-size: 70px; margin-bottom: 20px; }
         .branding-panel h1 { font-size: 42px; font-weight: 800; margin-bottom: 15px; letter-spacing: -0.5px; }
         .branding-panel p { color: #ffedd5; font-size: 16px; max-width: 450px; line-height: 1.6; }
-
-        /* Form Panel Right Side */
         .form-panel {
-            flex: 0.9;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
-            background: #ffffff;
+            flex: 0.9; display: flex; flex-direction: column; justify-content: center;
+            align-items: center; padding: 40px; background: #ffffff;
             box-shadow: -10px 0 30px rgba(0,0,0,0.02);
         }
-        .form-container-box {
-            width: 100%;
-            max-width: 380px;
-        }
-        .form-container-box h2 {
-            color: #1e293b;
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        /* Dynamic subtitle managed by socket */
-        #clg-subtitle {
-            color: #64748b;
-            font-size: 14px;
-            margin-bottom: 35px;
-        }
-
-        /* Premium Form Controls */
+        .form-container-box { width: 100%; max-width: 380px; }
+        .form-container-box h2 { color: #1e293b; font-size: 28px; font-weight: 700; margin-bottom: 5px; }
+        #clg-subtitle { color: #64748b; font-size: 14px; margin-bottom: 35px; }
         .input-group { position: relative; margin-bottom: 20px; }
         .input-group input { 
-            width: 100%; 
-            padding: 14px 16px; 
-            border: 2px solid #e2e8f0; 
-            border-radius: 10px; 
-            font-size: 15px; 
-            outline: none;
-            transition: all 0.3s ease;
-            background: #f8fafc;
-            color: #0f172a;
+            width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; 
+            border-radius: 10px; font-size: 15px; outline: none;
+            transition: all 0.3s ease; background: #f8fafc; color: #0f172a;
         }
         .input-group input:focus { border-color: #ea580c; background: #ffffff; box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1); }
-        
         button { 
-            width: 100%; 
-            padding: 14px; 
-            background: #ea580c; 
-            color: white; 
-            border: none; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            font-size: 16px; 
-            transition: all 0.2s ease; 
-            font-weight: 600; 
-            margin-top: 5px;
-            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
+            width: 100%; padding: 14px; background: #ea580c; color: white; border: none; 
+            border-radius: 10px; cursor: pointer; font-size: 16px; transition: all 0.2s ease; 
+            font-weight: 600; margin-top: 5px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
         }
         button:hover { background: #d97706; transform: translateY(-1px); }
         button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
-        
         .error-msg { 
-            color: #dc2626; 
-            font-size: 14px; 
-            display: none; 
-            margin-top: 15px; 
-            padding: 12px; 
-            background: #fef2f2; 
-            border-radius: 8px; 
-            font-weight: 500;
-            border-left: 4px solid #dc2626;
+            color: #dc2626; font-size: 14px; display: none; margin-top: 15px; padding: 12px; 
+            background: #fef2f2; border-radius: 8px; font-weight: 500; border-left: 4px solid #dc2626;
         }
-        .btn-home {
-            display: block;
-            text-align: center;
-            text-decoration: none;
-            color: #64748b;
-            font-size: 14px;
-            font-weight: 500;
-            margin-top: 20px;
-            transition: color 0.2s;
-        }
+        .btn-home { display: block; text-align: center; text-decoration: none; color: #64748b; font-size: 14px; font-weight: 500; margin-top: 20px; transition: color 0.2s; }
         .btn-home:hover { color: #1e293b; }
-
-        /* Mobile Adjustments */
         @media (max-width: 768px) {
             .login-split-container { flex-direction: column; }
             .branding-panel { flex: none; padding: 40px 20px; text-align: center; align-items: center; }
@@ -166,21 +95,23 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // 🔒 AUTO-REDIRECT GUARD: Agar driver pehle se logged-in hai, toh bina wajah login screen mat dikhao
-        if (localStorage.getItem("driverLogin") === "true" && localStorage.getItem("driverUser")) {
+        // 🔒 AUTO-REDIRECT GUARD: Agar session secure hai tabhi aage redirect karega
+        if (localStorage.getItem("driverLogin") === "true" && localStorage.getItem("driverUser") && localStorage.getItem("assignedBus")) {
             window.location.replace("driver.html");
+        } else {
+            // Agar pehle se kachra data store ho rakha hai, toh clear kar do
+            localStorage.clear();
         }
 
         const socket = io();
 
-        // 🔥 LIVE COLLEGE NAME LISTENER
         socket.on("update-college-name", (collegeName) => {
             document.getElementById("clg-subtitle").innerText = `${collegeName} Transit Operations`;
             document.title = `Driver Login - ${collegeName}`;
         });
 
         async function driverLogin() {
-            const u = document.getElementById("driverUser").value.trim();
+            const u = document.getElementById("driverUser").value.trim().toLowerCase();
             const p = document.getElementById("driverPass").value.trim();
             const errEl = document.getElementById("err");
             const btn = document.getElementById("loginBtn");
@@ -204,8 +135,8 @@
 
                 const data = await res.json();
 
-                if (data.success) {
-                    // 🔒 Real-time backend setup data storage (No hardcoded fallback here)
+                // 🔒 CRITICAL CHECK: Jab tak data.success TRUE nahi hoga aur valid assignedBus nahi milegi, tab tak login block rahega.
+                if (data.success && data.assignedBus) {
                     localStorage.setItem("driverLogin", "true");
                     localStorage.setItem("userRole", "driver");
                     localStorage.setItem("driverUser", u);
@@ -213,10 +144,11 @@
                     
                     window.location.replace("driver.html");
                 } else {
+                    localStorage.clear(); // Saara farzi data clear karo
                     btn.innerText = "Initialize Navigation System";
                     btn.disabled = false;
                     errEl.style.display = "block";
-                    errEl.innerText = "❌ " + (data.message || "Invalid Driver Credentials.");
+                    errEl.innerText = "❌ " + (data.message || "Access Denied! Driver account does not exist.");
                 }
             } catch (err) {
                 btn.innerText = "Initialize Navigation System";
@@ -226,7 +158,6 @@
             }
         }
 
-        // Enter key support for smooth login
         document.addEventListener('keypress', (e) => { if (e.key === 'Enter') driverLogin(); });
     </script>
 </body>
