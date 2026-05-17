@@ -4,7 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const { spawn } = require("child_process");
-const nodemailer = require("nodemailer"); // 🔥 Added for Gmail OTP
+const nodemailer = require("nodemailer"); // Added for Gmail OTP
 
 const app = express();
 const server = http.createServer(app);
@@ -18,7 +18,6 @@ app.use(express.json());
 app.use(express.static(__dirname)); 
 
 // --- ⚙️ GMAIL CONFIGURATION ---
-// 🔥 Fixed: Ab ye seedha Render dashboard ke variables se data uthayega, code me password likhne ki zaroorat nahi!
 const EMAIL_USER = process.env.EMAIL_USER; 
 const EMAIL_PASS = process.env.EMAIL_PASS; 
 
@@ -65,11 +64,11 @@ for (let i = 1; i <= 30; i++) {
     };
 }
 
-// --- 🔐 NEW OTP & CAPTCHA API ---
+// --- 🔐 NEW OTP API (CAPTCHA REMOVED) ---
 
 // 1. API: Send OTP to Student Gmail
 app.post("/api/send-otp", async (req, res) => {
-    const { username, email, captcha } = req.body;
+    const { username, email } = req.body; // Captcha destructive verification removed
 
     if (!username || !email) {
         return res.json({ success: false, message: "Username and Email are required!" });
@@ -78,11 +77,6 @@ app.post("/api/send-otp", async (req, res) => {
     // Validation: Check if student exists in database
     if (!studentDatabase[username]) {
         return res.json({ success: false, message: "Student ID not registered in system!" });
-    }
-
-    // 🔥 Captcha Server-Side Verification
-    if (!captcha) {
-        return res.json({ success: false, message: "Captcha verification failed!" });
     }
 
     // 6-Digit random OTP generation
