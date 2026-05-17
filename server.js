@@ -17,15 +17,20 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname)); 
 
-// --- ⚙️ GMAIL CONFIGURATION ---
+// --- ⚙️ GMAIL CONFIGURATION (UPDATED FOR SECURE PORT 465) ---
 const EMAIL_USER = process.env.EMAIL_USER; 
 const EMAIL_PASS = process.env.EMAIL_PASS; 
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // Secure connection using SSL/TLS
     auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false // Connection block hone se rokega on Render cloud
     }
 });
 
@@ -122,7 +127,7 @@ app.post("/api/verify-otp", (req, res) => {
     // Check if OTP is expired
     if (Date.now() > session.expires) {
         delete otpStore[username];
-        return res.json({ success: false, message: "OTP has expired! Please request a new one." });
+        return res.json({ success: false, message: "OTP has expired! Please request a nwe one." });
     }
 
     // Match OTP and Email
