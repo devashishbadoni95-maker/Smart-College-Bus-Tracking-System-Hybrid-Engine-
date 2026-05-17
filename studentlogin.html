@@ -3,7 +3,6 @@
 <head>
     <title>Student Login - College Bus</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .login-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 320px; text-align: center; }
@@ -14,7 +13,6 @@
         .error-msg { color: #e74c3c; font-size: 14px; display: none; margin-top: 10px; padding: 8px; background: #fdf2f2; border-radius: 5px; font-weight: 500; }
         .success-msg { color: #27ae60; font-size: 13px; display: none; margin-top: 5px; font-weight: bold; }
         .hidden { display: none; }
-        .captcha-container { display: flex; justify-content: center; margin: 12px 0; }
     </style>
 </head>
 <body>
@@ -31,10 +29,6 @@
                 <input type="email" id="email" placeholder="Enter Your Gmail Address" required>
             </div>
             
-            <div class="captcha-container">
-                <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div>
-                </div>
-
             <button type="button" id="sendOtpBtn" onclick="requestOTP()">Send OTP to Mail</button>
         </div>
 
@@ -74,17 +68,8 @@
         const errorMsg = document.getElementById("error");
         const sendBtn = document.getElementById("sendOtpBtn");
         
-        // 🔥 Captcha response check
-        const captchaResponse = grecaptcha.getResponse();
-
         if (!u || !email) {
             showError("⚠️ Please enter both Student ID and Gmail");
-            return;
-        }
-
-        // 🔥 Agar captcha tick nahi kiya bache ne
-        if (captchaResponse.length === 0) {
-            showError("⚠️ Please verify that you are not a robot!");
             return;
         }
 
@@ -99,7 +84,7 @@
                 body: JSON.stringify({ 
                     username: u, 
                     email: email,
-                    captcha: captchaResponse // Backend validation ke liye response bheja
+                    captcha: "bypassed" // Backend crash na ho isliye dummy value bhej rahe hain
                 })
             });
 
@@ -114,13 +99,11 @@
             } else {
                 sendBtn.innerText = "Send OTP to Mail";
                 sendBtn.disabled = false;
-                grecaptcha.reset(); // Fail hone par captcha reset
                 showError("❌ " + (data.message || "Failed to send OTP"));
             }
         } catch (err) {
             sendBtn.innerText = "Send OTP to Mail";
             sendBtn.disabled = false;
-            grecaptcha.reset();
             showError("⚠️ Server Connection Error.");
             console.error(err);
         }
@@ -171,19 +154,20 @@
         }
     }
 
+    // Error msg function
     function showError(text) {
         const errorMsg = document.getElementById("error");
         errorMsg.style.display = "block";
         errorMsg.innerText = text;
     }
 
+    // Reset/Back form function
     function resetForm() {
         document.getElementById("credentials-section").classList.remove("hidden");
         document.getElementById("otp-section").classList.add("hidden");
         document.getElementById("error").style.display = "none";
         document.getElementById("sendOtpBtn").innerText = "Send OTP to Mail";
         document.getElementById("sendOtpBtn").disabled = false;
-        grecaptcha.reset(); // Form back karne par captcha khali ho jaye
     }
     </script>
 </body>
