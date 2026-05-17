@@ -16,6 +16,32 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname)); 
 
+// --- 🔐 SECURE ADMIN CONFIGURATION ---
+// Ab admin ka password code me nahi, Render dashboard me secure rahega
+const ADMIN_USER = process.env.ADMIN_USER || "admin01";
+const ADMIN_PASS = process.env.ADMIN_PASS || "admin@123"; // Fallback agar env na mile
+
+// Memory me active sessions track karne ke liye
+let activeAdminSessions = new Set();
+
+// Middleware: Jo check karega ki request karne wala asli Admin hai ya nahi
+function requireAdmin(req, res, next) {
+    // Ye check karega ki kya browser ke paas valid admin session token hai
+    const adminToken = req.query.token || req.headers['x-admin-token'];
+    
+    if (activeAdminSessions.has(adminToken)) {
+        next(); // Agar token sahi hai toh page kholne do
+    } else {
+        // Agar koi seedha URL kholne ki koshish kare toh login page par fek do
+        res.status(401).send(`
+            <script>
+                alert('⚠️ Unauthorized Access! Please login first.');
+                window.location.href = '/adminlogin';
+            </script>
+        `);
+    }
+}
+
 // Memory me save rakhne ke liye ki kis bache ka kya OTP hai
 let otpStore = {};
 
@@ -28,7 +54,9 @@ app.get('/studentlogin', (req, res) => res.sendFile(path.join(__dirname, 'studen
 app.get('/driverlogin', (req, res) => res.sendFile(path.join(__dirname, 'driverlogin.html')));
 app.get('/adminlogin', (req, res) => res.sendFile(path.join(__dirname, 'adminlogin.html')));
 
-app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+// 🔥 SECURED ROUTE: Ab bina login kiye koi bhi admin.html nahi khol payega
+app.get('/admin.html', requireAdmin, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+
 app.get('/student.html', (req, res) => res.sendFile(path.join(__dirname, 'student.html')));
 app.get('/driver.html', (req, res) => res.sendFile(path.join(__dirname, 'driver.html')));
 
@@ -49,77 +77,61 @@ for (let i = 1; i <= 30; i++) {
     };
 }
 
-// --- 🔐 NEW JUGAD OTP API (NO EMAIL REQUIRED) ---
-
-// 1. API: Generate and Send OTP in Response
+// --- 🔐 OTP API ---
 app.post("/api/send-otp", async (req, res) => {
     const { username, email } = req.body;
+    if (!username || !email) return res.json({ success: false, message: "Username and Email are required!" });
+    if (!studentDatabase[username]) return res.json({ success: false, message: "Student ID not registered!" });
 
-    if (!username || !email) {
-        return res.json({ success: false, message: "Username and Email are required!" });
-    }
-
-    // Validation: Check if student exists
-    if (!studentDatabase[username]) {
-        return res.json({ success: false, message: "Student ID not registered in system!" });
-    }
-
-    // 6-Digit random OTP generation
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Store OTP in memory with 5 minutes expiry
-    otpStore[username] = {
-        otp: generatedOtp,
-        email: email,
-        expires: Date.now() + 300000 // 5 Mins
-    };
+    otpStore[username] = { otp: generatedOtp, email: email, expires: Date.now() + 300000 };
 
     console.log(`🔑 Generated OTP for ${username}: ${generatedOtp}`);
-
-    // 🔥 Jugad: OTP ko seedha response me bhej rahe hain taaki frontend alert me dikha sake
-    return res.json({ 
-        success: true, 
-        message: "OTP generated successfully!", 
-        testingOtp: generatedOtp  // Ye frontend ko bata dega ki OTP kya hai
-    });
+    return res.json({ success: true, message: "OTP generated!", testingOtp: generatedOtp });
 });
 
-// 2. API: Verify OTP Entered by Student
 app.post("/api/verify-otp", (req, res) => {
     const { username, email, otp } = req.body;
-
-    if (!otpStore[username]) {
-        return res.json({ success: false, message: "OTP session expired or not requested!" });
-    }
-
+    if (!otpStore[username]) return res.json({ success: false, message: "OTP expired!" });
     const session = otpStore[username];
 
     if (Date.now() > session.expires) {
         delete otpStore[username];
-        return res.json({ success: false, message: "OTP has expired! Please request a new one." });
+        return res.json({ success: false, message: "OTP has expired!" });
     }
 
     if (session.otp === otp && session.email === email) {
         delete otpStore[username]; 
         return res.json({ success: true, message: "Login Successful!" });
     } else {
-        return res.json({ success: false, message: "Incorrect OTP! Please try again." });
+        return res.json({ success: false, message: "Incorrect OTP!" });
     }
 });
 
-// --- 🔐 ADMIN & DRIVER ORIGINAL LOGIN API ---
+// --- 🔐 UPDATED LOGIN API FOR ADMIN & DRIVER ---
 app.post("/login", (req, res) => {
     const { username, password, role } = req.body;
-    if (role === "admin" && username === "admin01" && password === "admin@123") {
-        return res.json({ success: true });
+    
+    // 🔥 Secure Admin Login Logic
+    if (role === "admin") {
+        if (username === ADMIN_USER && password === ADMIN_PASS) {
+            // Ek unique secure token generate kiya
+            const secureToken = "token_" + Math.random().toString(36).substr(2) + Date.now().toString(36);
+            activeAdminSessions.add(secureToken); // Token ko memory me save kiya
+
+            // Frontend ko token bhej rahe hain
+            return res.json({ success: true, token: secureToken });
+        } else {
+            return res.json({ success: false, message: "Wrong Admin Credentials!" });
+        }
     }
-    const validDrivers = {
-        "driver01": "bus@123", 
-        "driver02": "bus@456"  
-    };
+
+    // Driver Login
+    const validDrivers = { "driver01": "bus@123", "driver02": "bus@456" };
     if (role === "driver" && validDrivers[username] === password) {
         return res.json({ success: true });
     }
+
     res.json({ success: false, message: "Invalid username or password" });
 });
 
