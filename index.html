@@ -12,6 +12,8 @@
             height: 100vh; 
             display: flex;
             overflow: hidden;
+            /* 🔥 Smooth transition jab background image change ho */
+            transition: background-image 0.5s ease-in-out; 
         }
         
         /* Full Screen Split View Layout */
@@ -140,10 +142,25 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        
         socket.on("update-college-name", (collegeName) => {
             document.getElementById("portal-title").innerText = collegeName;
             document.getElementById("portal-footer").innerHTML = `&copy; 2026 ${collegeName} Management`;
             document.title = `${collegeName} - Main Control Hub`;
+        });
+
+        // 🔥 LIVE BACKGROUND IMAGE RECEPTOR (With Strict Empty/Default Check)
+        socket.on("update-bg-image", (bgUrl) => {
+            if (bgUrl && bgUrl.trim() !== "") {
+                document.body.style.backgroundImage = `url('${bgUrl}')`;
+                document.body.style.backgroundSize = "cover";
+                document.body.style.backgroundPosition = "center";
+                document.body.style.backgroundRepeat = "no-repeat";
+                document.body.style.backgroundAttachment = "fixed";
+            } else {
+                // Agar background image nahi hai toh poori tarah clear rakho (Default CSS chalega)
+                document.body.style.backgroundImage = "none";
+            }
         });
     </script>
 </body>
