@@ -55,6 +55,15 @@
         <button class="config-btn" onclick="updateCollegeName()">✏️ Customize College Name</button>
     </div>
 
+    <div class="table-wrapper" style="padding: 20px; background: white;">
+        <h3 style="margin-top:0; color: #1e293b; font-size: 16px;">🖼️ Portal Dynamic Background Image</h3>
+        <p style="font-size:13px; color:#64748b; margin-top: 5px;">Upload a panoramic banner/photo (JPG/PNG) to instantly transform the background layout of Index & Login hubs live.</p>
+        <div style="display:flex; gap:12px; align-items:center; margin-top:15px; flex-wrap: wrap;">
+            <input type="file" id="bgFileInput" accept="image/*" style="font-size:14px; color:#475569; border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; background: #f8fafc;">
+            <button class="config-btn" style="background:#10b981; padding: 10px 18px; font-size: 14px; margin-left: 0; box-shadow: 0 4px 12px rgba(16,185,129,0.2);" onclick="uploadBackground()">📤 Upload & Apply Live</button>
+        </div>
+    </div>
+
     <div class="section-title">📊 Live Fleet Status</div>
     <div class="bus-status-grid">
         <div id="card-BUS-01" class="bus-card">
@@ -139,6 +148,36 @@
         if (newName && newName.trim() !== "") {
             socket.emit("admin-change-college", newName.trim());
             alert("🏫 College name updated successfully across all networks!");
+        }
+    }
+
+    // 🔥 DYNAMIC BACKGROUND UPLOAD HANDLER
+    async function uploadBackground() {
+        const fileInput = document.getElementById("bgFileInput");
+        if (fileInput.files.length === 0) {
+            alert("⚠️ Please select an image file first before uploading!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("bgImage", fileInput.files[0]);
+
+        try {
+            // Securely transfer image file with admin security token injected
+            const res = await fetch(`/api/upload-bg?token=${token}`, {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert("🎉 Background Image uploaded and applied live across index & login hubs!");
+                fileInput.value = ""; // Form input slot clear karo
+            } else {
+                alert("❌ Upload process failed: " + data.message);
+            }
+        } catch (err) {
+            alert("⚠️ Network connectivity error while transferring assets to Cloud server.");
+            console.error(err);
         }
     }
 
