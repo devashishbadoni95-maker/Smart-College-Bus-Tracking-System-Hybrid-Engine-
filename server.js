@@ -39,8 +39,8 @@ function requireAdmin(req, res, next) {
 let otpStore = {};
 
 // --- 📊 DATABASE IN MEMORY ---
-// 😎 FIX: Pehle yahan "Shivalik College" tha, ab default name aapka set kar diya hai!
 let collegeName = "Dev Badoni"; 
+let bgImagePath = ""; // 🔥 JUGAAAD: Shuruat mein ekdam khaali text string (No Default Image)
 
 let busLocations = {
     "BUS-01": { lat: null, lng: null, status: "Offline" },
@@ -58,7 +58,7 @@ for (let i = 1; i <= 30; i++) {
     };
 }
 
-// 🔒 Zero Hardcoded Defaults: Database shuruat mein ekdam khaali rahega jab tak Admin khud add nahi karta.
+// 🔒 Zero Hardcoded Defaults
 let driverDatabase = {};
 
 // --- 🌐 ROUTES ---
@@ -131,11 +131,19 @@ app.post("/login", (req, res) => {
 io.on("connection", (socket) => {
     console.log(`📡 Connected: ${socket.id}`);
 
-    // 🔥 Connect hote hi "Dev Badoni" name sabhi connected users ke UI par bhej diya jayega
+    // Connect hote hi sabhi connected users ko data bhej diya jayega
     socket.emit("update-college-name", collegeName);
+    socket.emit("update-bg-image", bgImagePath); // 🔥 JUGAAAD: Naye client ko turant current background status milegi
     socket.emit("update-all-buses", busLocations);
     socket.emit("update-admin-dashboard", Object.values(studentDatabase));
     socket.emit("update-driver-list", driverDatabase);
+
+    // 🔥 JUGAAAD: Direct Socket Listener for Background Image
+    socket.on("admin-upload-bg", (base64Image) => {
+        bgImagePath = base64Image; // Image text string save ho gayi memory mein
+        console.log("🖼️ Dynamic Background layout updated via live data stream!");
+        io.emit("update-bg-image", bgImagePath); // Saare screens par instantly apply karo
+    });
 
     socket.on("admin-change-college", (newName) => {
         if (newName && newName.trim() !== "") {
