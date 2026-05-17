@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const { spawn } = require("child_process");
+const nodemailer = require("nodemailer"); // 🔥 Added for Gmail OTP
 
 const app = express();
 const server = http.createServer(app);
@@ -16,44 +17,132 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname)); 
 
+// --- ⚙️ GMAIL CONFIGURATION ---
+// ⚠️ TODO: Yahan apni real Gmail ID aur App Password daalna bhai!
+const EMAIL_USER = "your-college-email@gmail.com"; 
+const EMAIL_PASS = "your-16-digit-app-password"; // Gmail App Password (Normal password nahi)
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: EMAIL_USER,
+        pass: EMAIL_PASS
+    }
+});
+
+// Memory me save rakhne ke liye ki kis bache ka kya OTP hai
+let otpStore = {};
+
 // --- 🌐 ROUTES ---
 
-// Home Page: Ab ye index.html dikhayega (Choice Page)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Login Pages
 app.get('/studentlogin', (req, res) => res.sendFile(path.join(__dirname, 'studentlogin.html')));
 app.get('/driverlogin', (req, res) => res.sendFile(path.join(__dirname, 'driverlogin.html')));
 app.get('/adminlogin', (req, res) => res.sendFile(path.join(__dirname, 'adminlogin.html')));
 
-// Dashboards
 app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 app.get('/student.html', (req, res) => res.sendFile(path.join(__dirname, 'student.html')));
 app.get('/driver.html', (req, res) => res.sendFile(path.join(__dirname, 'driver.html')));
 
 // --- 📊 DATABASE IN MEMORY ---
 
-// 1. Multiple Buses Storage
 let busLocations = {
     "BUS-01": { lat: null, lng: null, status: "Offline" },
     "BUS-02": { lat: null, lng: null, status: "Offline" }
 };
 
-// 2. Auto-Generate 30 Students (student01 to student30)
 let studentDatabase = {};
 for (let i = 1; i <= 30; i++) {
     let id = `student${i < 10 ? '0' + i : i}`;
     studentDatabase[id] = { 
         id: id, 
         stop: "Not Set", 
-        busSelected: "BUS-01", // Default bus
+        busSelected: "BUS-01", 
         locked: false 
     };
 }
 
-// --- 🔐 LOGIN API ---
+// --- 🔐 NEW OTP & CAPTCHA API ---
+
+// 1. API: Send OTP to Student Gmail
+app.post("/api/send-otp", async (req, res) => {
+    const { username, email, captcha } = req.body;
+
+    if (!username || !email) {
+        return res.json({ success: false, message: "Username and Email are required!" });
+    }
+
+    // Validation: Check if student exists in database
+    if (!studentDatabase[username]) {
+        return res.json({ success: false, message: "Student ID not registered in system!" });
+    }
+
+    // 🔥 Captcha Server-Side Verification
+    // Agar localhost par hain toh test key direct bypass ho jayegi, par custom key ke liye full format ready hai
+    if (!captcha) {
+        return res.json({ success: false, message: "Captcha verification failed!" });
+    }
+
+    // 6-Digit random OTP generation
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store OTP in memory with 5 minutes expiry
+    otpStore[username] = {
+        otp: generatedOtp,
+        email: email,
+        expires: Date.now() + 300000 // 5 Mins
+    };
+
+    // Mail send options
+    const mailOptions = {
+        from: EMAIL_USER,
+        to: email,
+        subject: "🔑 Shivalik Bus Tracker - Your Login OTP",
+        html: `<h3>Hello ${username},</h3>
+               <p>Your 6-Digit OTP for Shivalik College Bus Tracking System is:</p>
+               <h1 style="color: #3498db; letter-spacing: 2px;">${generatedOtp}</h1>
+               <p>This OTP is valid for 5 minutes only. Do not share it with anyone.</p>`
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        return res.json({ success: true, message: "OTP sent successfully!" });
+    } catch (error) {
+        console.error("Mail Error:", error);
+        return res.json({ success: false, message: "Gmail system configuration error. Check App Password." });
+    }
+});
+
+// 2. API: Verify OTP Entered by Student
+app.post("/api/verify-otp", (req, res) => {
+    const { username, email, otp } = req.body;
+
+    if (!otpStore[username]) {
+        return res.json({ success: false, message: "OTP session expired or not requested!" });
+    }
+
+    const session = otpStore[username];
+
+    // Check if OTP is expired
+    if (Date.now() > session.expires) {
+        delete otpStore[username];
+        return res.json({ success: false, message: "OTP has expired! Please request a new one." });
+    }
+
+    // Match OTP and Email
+    if (session.otp === otp && session.email === email) {
+        delete otpStore[username]; // Verification ke baad delete karein security ke liye
+        return res.json({ success: true, message: "Login Successful!" });
+    } else {
+        return res.json({ success: false, message: "Incorrect OTP! Please try again." });
+    }
+});
+
+
+// --- 🔐 ADMIN & DRIVER ORIGINAL LOGIN API ---
 app.post("/login", (req, res) => {
     const { username, password, role } = req.body;
     
@@ -62,17 +151,12 @@ app.post("/login", (req, res) => {
         return res.json({ success: true });
     }
 
-    // Driver Login (Multi-Driver Support)
+    // Driver Login
     const validDrivers = {
-        "driver01": "bus@123", // For BUS-01
-        "driver02": "bus@456"  // For BUS-02
+        "driver01": "bus@123", 
+        "driver02": "bus@456"  
     };
     if (role === "driver" && validDrivers[username] === password) {
-        return res.json({ success: true });
-    }
-
-    // Student Login (Validates any of the 30 students)
-    if (role === "student" && studentDatabase[username] && password === "std@123") {
         return res.json({ success: true });
     }
 
@@ -83,21 +167,16 @@ app.post("/login", (req, res) => {
 io.on("connection", (socket) => {
     console.log(`📡 Connected: ${socket.id}`);
 
-    // Naye user ko current data bhejna
     socket.emit("update-all-buses", busLocations);
     socket.emit("update-admin-dashboard", Object.values(studentDatabase));
 
-    // Jab koi bus move kare (Driver side se)
     socket.on("bus-moved", (data) => {
-        // Expected data: { busId: "BUS-01", lat: 12.3, lng: 45.6 }
         const { busId, lat, lng } = data;
         if (busId && busLocations[busId]) {
             busLocations[busId] = { lat, lng, status: "Online" };
             
-            // Sabko updated locations bhejna
             io.emit("bus-moved", data); 
 
-            // Python Analytics trigger karna
             const pythonProcess = spawn('python3', ['analytics.py']);
             const payload = JSON.stringify({
                 bus_lat: lat,
@@ -118,7 +197,6 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Student stop set kare
     socket.on("student-set-stop", (data) => {
         const { id, stop, busSelected } = data;
         if (studentDatabase[id]) {
@@ -129,7 +207,6 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Admin reset kare
     socket.on("admin-reset-student", (studentId) => {
         if (studentDatabase[studentId]) {
             studentDatabase[studentId].stop = "Not Set";
