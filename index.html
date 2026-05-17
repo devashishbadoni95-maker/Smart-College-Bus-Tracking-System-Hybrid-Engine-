@@ -13,7 +13,11 @@
             display: flex;
             overflow: hidden;
             /* 🔥 Smooth transition jab background image change ho */
-            transition: background-image 0.5s ease-in-out; 
+            transition: background-image 0.5s ease-in-out, background-color 0.5s ease; 
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }
         
         /* Full Screen Split View Layout */
@@ -21,39 +25,47 @@
             display: flex;
             width: 100%;
             height: 100vh;
+            /* 🔥 Backdrop blur taaki agar background image aaye toh text makkhan dikhe */
+            backdrop-filter: blur(3px);
+            transition: backdrop-filter 0.5s ease;
         }
 
         /* Left Branding Area */
         .brand-side {
             flex: 1.2;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            /* 🔥 background ko thoda rgba overlay diya taaki photo aane par bhi text saaf padha jaye */
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.97) 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             padding: 60px;
             color: white;
             position: relative;
+            transition: background 0.5s ease;
         }
         .brand-side::before {
             content: "";
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.15) 0%, transparent 50%);
+            pointer-events: none;
         }
-        .brand-logo { font-size: 80px; margin-bottom: 20px; }
-        .brand-side h1 { font-size: 48px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; letter-spacing: -1px; }
-        .brand-side p { color: #94a3b8; font-size: 18px; max-width: 500px; line-height: 1.6; }
+        .brand-logo { font-size: 80px; margin-bottom: 20px; z-index: 1; }
+        .brand-side h1 { font-size: 48px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; letter-spacing: -1px; z-index: 1; }
+        .brand-side p { color: #94a3b8; font-size: 18px; max-width: 500px; line-height: 1.6; z-index: 1; }
 
         /* Right Control Action Panel */
         .action-side {
             flex: 0.9;
-            background: white;
+            /* 🔥 White background ko slight transparent kiya image dynamic transparent effect ke liye */
+            background: rgba(255, 255, 255, 0.96);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             padding: 40px;
             box-shadow: -10px 0 30px rgba(0,0,0,0.03);
+            transition: background 0.5s ease;
         }
         .action-box {
             width: 100%;
@@ -92,7 +104,7 @@
         .btn-student { background: #2563eb; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
         .btn-student:hover { background: #1d4ed8; }
         .btn-driver { background: #ea580c; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2); }
-        .btn-driver:hover { background: #ca8a04; }
+        .btn-driver:hover { background: #c2410c; } /* Fixed duplicate color look */
         .btn-admin { background: #334155; box-shadow: 0 4px 12px rgba(51, 65, 85, 0.2); }
         .btn-admin:hover { background: #1e293b; }
         
@@ -101,25 +113,25 @@
 
         /* Responsive Fix for mobile view screens */
         @media (max-width: 768px) {
-            body { overflow: auto; }
-            .split-container { flex-direction: column; height: auto; }
-            .brand-side { flex: none; padding: 40px 20px; text-align: center; align-items: center; }
+            body { overflow: auto; height: auto; }
+            .split-container { flex-direction: column; height: auto; backdrop-filter: none; }
+            .brand-side { flex: none; padding: 40px 20px; text-align: center; align-items: center; background: #0f172a; }
             .brand-side h1 { font-size: 32px; }
             .brand-logo { font-size: 60px; }
-            .action-side { flex: none; padding: 40px 20px; background: #f8fafc; }
+            .action-side { flex: none; padding: 40px 20px; background: #f8fafc; width: 100%; }
         }
     </style>
 </head>
 <body>
 
-    <div class="split-container">
-        <div class="brand-side">
+    <div class="split-container" id="mainContainer">
+        <div class="brand-side" id="brandSide">
             <div class="brand-logo">🚌</div>
             <h1 id="portal-title">Loading Hub...</h1>
             <p>Welcome to the next-gen Transit Command Console. Monitor locations, route schedules, and access your terminal controls instantly.</p>
         </div>
 
-        <div class="action-side">
+        <div class="action-side" id="actionSide">
             <div class="action-box">
                 <h2>System Gateway</h2>
                 <p class="desc">Please select your operational portal below to continue</p>
@@ -149,17 +161,23 @@
             document.title = `${collegeName} - Main Control Hub`;
         });
 
-        // 🔥 LIVE BACKGROUND IMAGE RECEPTOR (With Strict Empty/Default Check)
+        // 🔥 LIVE BACKGROUND IMAGE RECEPTOR (With Enhanced Glassmorphism Blending)
         socket.on("update-bg-image", (bgUrl) => {
+            const brandSide = document.getElementById("brandSide");
+            const actionSide = document.getElementById("actionSide");
+
             if (bgUrl && bgUrl.trim() !== "") {
+                // Background image apply karo body par
                 document.body.style.backgroundImage = `url('${bgUrl}')`;
-                document.body.style.backgroundSize = "cover";
-                document.body.style.backgroundPosition = "center";
-                document.body.style.backgroundRepeat = "no-repeat";
-                document.body.style.backgroundAttachment = "fixed";
+                
+                // Photo aane par containers ko blend karne ke liye dynamic classes style apply karo
+                brandSide.style.background = "linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%)";
+                actionSide.style.background = "rgba(255, 255, 255, 0.88)";
             } else {
-                // Agar background image nahi hai toh poori tarah clear rakho (Default CSS chalega)
+                // Agar data empty hai toh standard pristine properties par restore karo
                 document.body.style.backgroundImage = "none";
+                brandSide.style.background = "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)";
+                actionSide.style.background = "white";
             }
         });
     </script>
